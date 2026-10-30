@@ -1,3 +1,5 @@
+> Mapper 구현 전의 기록이다. 현재 상태는 [진행 상황](../00-overview/01-progress.md)을 참고한다.
+
 # simple-jorm 진행 상황
 
 저장일: 2026-10-30 (한국 시간)
@@ -13,8 +15,8 @@
 
 ## 완료된 학습 및 실험 기록
 
-- [Java ORM과 데이터 접근 생태계](java-orm-ecosystem.md): 기술별 역할과 프로젝트 학습 순서 정리.
-- [행 수·필드 수에 따른 JDBC 매핑 비용 실험](lab/2026-10-30-mapping-scaling.md): 수동 매핑, simple-jorm, Spring JDBC, Commons DbUtils 비교.
+- [Java ORM과 데이터 접근 생태계](../reference/01-java-orm-ecosystem.md): 기술별 역할과 프로젝트 학습 순서 정리.
+- [행 수·필드 수에 따른 JDBC 매핑 비용 실험](../lab/02-mapping-scaling.md): 수동 매핑, simple-jorm, Spring JDBC, Commons DbUtils 비교.
 - 실험 계획서에는 전체 측정과 기존 테스트 실행이 완료된 것으로 기록되어 있음. 원시 데이터와 환경 정보는 `doc/lab/results/2026-10-30-scaling-v2/`에 보관.
 - 원격 저장 전 `gradlew.bat test --rerun-tasks`를 실행하여 BUILD SUCCESSFUL을 확인함. 성능 실험은 다시 실행하지 않음.
 

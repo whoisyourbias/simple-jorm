@@ -23,11 +23,18 @@ class BeanPropertyRowMapperTest {
             stmt.execute("CREATE TABLE users(id BIGINT, name VARCHAR(100))");
             stmt.execute("INSERT INTO users VALUES (1, 'Alice'), (2, 'Bob'), (3, NULL)");
             var template = new JdbcTemplate(ds);
+            
+            
             RowMapper<User> manual = (rs, row) -> new User(
-                    rs.getObject("id", Long.class), rs.getString("name"));
-            RowMapper<User> automatic = new BeanPropertyRowMapper<>(User.class);
+                    rs.getObject("id", Long.class), 
+                    rs.getString("name")
+            );
             var expected = template.query("SELECT id, name FROM users ORDER BY id", manual);
+            
+            RowMapper<User> automatic = new BeanPropertyRowMapper<>(User.class);
             var actual = template.query("SELECT id, name FROM users ORDER BY id", automatic);
+            
+            
             assertEquals(3, actual.size());
             for (int i = 0; i < expected.size(); i++) {
                 assertEquals(expected.get(i).id, actual.get(i).id);
