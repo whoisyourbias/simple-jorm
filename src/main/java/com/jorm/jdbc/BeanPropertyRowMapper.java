@@ -14,6 +14,7 @@ import java.util.Map;
  * 무시하고 비교한다. 조회하지 않은 필드는 기본값을 유지하며, 대응 필드가 없는
  * 컬럼이나 호환되지 않는 값은 SQLException으로 보고한다.
  * 상속 필드, final 필드, record 및 별도의 타입 변환은 지원하지 않는다.
+ * prepare가 반환하는 조회 전용 매퍼는 컬럼 순서에 따른 필드 매핑을 재사용한다.
  *
  * @param <T> 매핑할 객체 타입
  */
@@ -49,20 +50,38 @@ public final class BeanPropertyRowMapper<T> implements RowMapper<T> {
 
     @Override
     public T mapRow(ResultSet rs, int rowNum) throws SQLException {
+        return prepare(rs).mapRow(rs, rowNum);
+    }
+
+    @Override
+    public RowMapper<T> prepare(ResultSet rs) throws SQLException {
+        Field[] mapping = columnMapping(rs);
+        return (row, rowNum) -> mapRow(row, rowNum, mapping);
+    }
+
+    private T mapRow(ResultSet rs, int rowNum, Field[] mapping) throws SQLException {
         try {
             T target = constructor.newInstance();
-            var metadata = rs.getMetaData();
-            for (int column = 1; column <= metadata.getColumnCount(); column++) {
-                String label = metadata.getColumnLabel(column);
-                Field field = fields.get(label.toLowerCase(Locale.ROOT));
-                if (field == null) {
-                    throw new SQLException("No writable field for column: " + label);
-                }
-                field.set(target, rs.getObject(column));
+            for (int index = 0; index < mapping.length; index++) {
+                mapping[index].set(target, rs.getObject(index + 1));
             }
             return target;
         } catch (ReflectiveOperationException | IllegalArgumentException e) {
             throw new SQLException("Cannot map row " + rowNum, e);
         }
+    }
+
+    private Field[] columnMapping(ResultSet rs) throws SQLException {
+        var metadata = rs.getMetaData();
+        Field[] mapping = new Field[metadata.getColumnCount()];
+        for (int index = 0; index < mapping.length; index++) {
+            String label = metadata.getColumnLabel(index + 1);
+            Field field = fields.get(label.toLowerCase(Locale.ROOT));
+            if (field == null) {
+                throw new SQLException("No writable field for column: " + label);
+            }
+            mapping[index] = field;
+        }
+        return mapping;
     }
 }

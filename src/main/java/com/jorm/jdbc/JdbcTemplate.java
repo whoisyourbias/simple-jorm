@@ -46,7 +46,7 @@ public class JdbcTemplate {
 				if (!st.next())
 					return null;
 				
-				return rowMapper.mapRow(st, 0);			
+				return rowMapper.prepare(st).mapRow(st, 0);
 			}
 		}
 	}
@@ -77,10 +77,13 @@ public class JdbcTemplate {
 			try (ResultSet st = stmt.executeQuery()) {
 				List<T> results = new ArrayList<>();
 				int rowNum = 0;
-				
-				while(st.next()) {
-					results.add(rowMapper.mapRow(st, rowNum++));
+				if (!st.next()) {
+					return results;
 				}
+				RowMapper<T> prepared = rowMapper.prepare(st);
+				do {
+					results.add(prepared.mapRow(st, rowNum++));
+				} while (st.next());
 				
 				return results;			
 			}
