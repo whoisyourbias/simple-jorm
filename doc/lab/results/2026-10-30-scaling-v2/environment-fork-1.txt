@@ -1,0 +1,19 @@
+timestamp_utc=2026-10-30T05:33:41.979791500Z
+fork=1
+java=21.0.11+10-LTS
+vm=OpenJDK 64-Bit Server VM
+vendor=Azul Systems, Inc.
+os=Windows 11 10.0 amd64
+jvm_args=[-Xms512m, -Xmx512m, -Dfile.encoding=UTF-8, -Duser.country=KR, -Duser.language=ko, -Duser.variant]
+processors=16
+db=8.0.37
+driver=mysql-connector-j-9.7.0 (Revision: 0aade1f13bcc98faf7dda5c02e782481eb291f62)
+connection=existing localhost MySQL TCP connection; no pool; autoCommit=true
+warmups=2; samples=5; seed=20261030+fork*1000+columns*10+rows
+spring=6.2.12; dbutils=1.8.1; result mode=buffered, no streaming/cursor fetch
+character_set_server=utf8mb4
+collation_server=utf8mb4_0900_ai_ci
+innodb_buffer_pool_size=134217728
+max_connections=151
+version_compile_machine=x86_64
+version_compile_os=Win64

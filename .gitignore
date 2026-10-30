@@ -1,0 +1,25 @@
+# Gradle caches and build output
+.gradle/
+build/
+
+# Java compiler output
+*.class
+bin/
+
+# STS / Eclipse local project metadata
+.classpath
+.project
+.settings/
+.metadata/
+.springBeans
+.sts4-cache/
+
+# Local logs and H2 database files
+*.log
+*.mv.db
+*.trace.db
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini

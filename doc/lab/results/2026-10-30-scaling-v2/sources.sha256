@@ -1,0 +1,5 @@
+c1a264967fa17502beab104295ed035b3b77a78e30572b0f1b27614bc06ea30a  build.gradle.kts
+ef2d8d9e4080b95aa3b35fb41eca9e383843eeee6dbfaaa22fd6cd7774a5e8ab  src/main/java/com/jorm/jdbc/BeanPropertyRowMapper.java
+597893867873683252919c457292eaa7807b27fd622f1ab095ebaf8eb1a5c228  src/test/java/com/jorm/jdbc/lab/MappingScalingBenchmark.java
+80e9e8ed93c243a1f4e81176d403d29ad85bd097a88cfb50db0275a5f31f6bdc  src/test/java/com/jorm/jdbc/lab/ScalingRows.java
+2300cdb41fdd033cf8b26581446611a73906db2fc3a8d45e73f0fbc8effe6ec5  src/test/java/com/jorm/jdbc/lab/LibraryMappingBenchmark.java
