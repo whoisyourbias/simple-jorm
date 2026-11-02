@@ -1,6 +1,6 @@
 package com.jorm.jdbc;
 
-import java.sql.Connection;
+import com.jorm.transaction.TransactionManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,12 +12,20 @@ import javax.sql.DataSource;
 //SQL 실행, 파라미터 바인딩, JDBC 자원 정리
 public class JdbcTemplate {
 
-	private final DataSource dataSource;
-	
+	private final TransactionManager transactions;
+
+	/** SQL 실행에 사용할 관리자를 연결한다. DataSource 생성자는 독립적인 트랜잭션 관리자를 만든다. */
 	public JdbcTemplate(DataSource datasource) {
-		this.dataSource = datasource;
+		// 다른 생성자로 위임해 초기화 경로를 통일한다.
+		this(new TransactionManager(datasource));
 	}
-	
+
+	/** SQL 실행에 사용할 관리자를 연결한다. DataSource 생성자는 독립적인 트랜잭션 관리자를 만든다. */
+	public JdbcTemplate(TransactionManager transactions) {
+		// 필수 의존성이 null인지 검사하고 필요한 경우 필드에 보관한다.
+		this.transactions = java.util.Objects.requireNonNull(transactions);
+	}
+
 	/**
 	 * SQL을 실행하고 조회 결과의 첫 번째 행을 객체로 변환하여 반환한다.
 	 *
@@ -36,21 +44,28 @@ public class JdbcTemplate {
 			RowMapper<T> rowMapper,
 			Object... args
 			) throws SQLException {
-		try (Connection conn = this.dataSource.getConnection();
-			PreparedStatement stmt = conn.prepareStatement(query);
-			) {
-			
-			bindParameters(stmt, args);
-			
-			try (ResultSet st = stmt.executeQuery()) {
-				if (!st.next())
-					return null;
-				
-				return rowMapper.prepare(st).mapRow(st, 0);
+		// 활성 트랜잭션 연결 또는 임시 연결을 받아 SQL을 실행한다.
+		return transactions.withConnection(conn -> {
+			// 물음표 바인딩용 PreparedStatement를 만들고 블록 종료 시 닫는다.
+			try (PreparedStatement stmt = conn.prepareStatement(query)) {
+
+				// SQL 물음표 순서대로 인자를 설정한다.
+				bindParameters(stmt, args);
+
+				// SQL 결과를 열고 블록 종료 시 ResultSet을 닫는다.
+				try (ResultSet st = stmt.executeQuery()) {
+					// 첫 행으로 이동한다. 행이 없으면 아래에서 null을 반환한다.
+					if (!st.next())
+						// 단건 결과가 없거나 테스트용 반환값이 없음을 null로 나타낸다.
+						return null;
+
+					// 매퍼를 준비하고 첫 행만 행 번호 0으로 변환한다.
+					return rowMapper.prepare(st).mapRow(st, 0);
+				}
 			}
-		}
+		});
 	}
-	
+
 	/**
 	 * SQL을 실행하고 조회 결과의 모든 행을 객체로 변환하여 리스트로 반환한다.
 	 *
@@ -69,27 +84,41 @@ public class JdbcTemplate {
 			RowMapper<T> rowMapper,
 			Object... args
 			) throws SQLException {
-		try (Connection conn = this.dataSource.getConnection();
-			PreparedStatement stmt = conn.prepareStatement(query);) {
-			
-			bindParameters(stmt, args);
-			
-			try (ResultSet st = stmt.executeQuery()) {
-				List<T> results = new ArrayList<>();
-				int rowNum = 0;
-				if (!st.next()) {
+		// 활성 트랜잭션 연결 또는 임시 연결을 받아 SQL을 실행한다.
+		return transactions.withConnection(conn -> {
+			// 물음표 바인딩용 PreparedStatement를 만들고 블록 종료 시 닫는다.
+			try (PreparedStatement stmt = conn.prepareStatement(query)) {
+
+				// SQL 물음표 순서대로 인자를 설정한다.
+				bindParameters(stmt, args);
+
+				// SQL 결과를 열고 블록 종료 시 ResultSet을 닫는다.
+				try (ResultSet st = stmt.executeQuery()) {
+					// 결과 또는 실행 순서를 담을 리스트를 준비한다.
+					List<T> results = new ArrayList<>();
+					// 행 매핑에 전달할 번호를 0으로 초기화한다.
+					int rowNum = 0;
+					// 첫 행으로 이동하고 결과가 비었는지 확인한다.
+					if (!st.next()) {
+						// 조회 순서대로 매핑한 리스트를 반환한다. 행이 없으면 빈 리스트다.
+						return results;
+					}
+					// 조회 전용 매퍼를 한 번 준비해 모든 행에서 재사용한다.
+					RowMapper<T> prepared = rowMapper.prepare(st);
+					// 첫 행에 이미 위치했으므로 현재 행부터 변환한다.
+					do {
+						// 현재 행을 변환해 리스트에 추가하고 행 번호를 증가시킨다.
+						results.add(prepared.mapRow(st, rowNum++));
+					    // 다음 행이 있으면 같은 준비된 매퍼로 반복한다.
+					} while (st.next());
+
+					// 조회 순서대로 매핑한 리스트를 반환한다. 행이 없으면 빈 리스트다.
 					return results;
 				}
-				RowMapper<T> prepared = rowMapper.prepare(st);
-				do {
-					results.add(prepared.mapRow(st, rowNum++));
-				} while (st.next());
-				
-				return results;			
 			}
-		}
+		});
 	}
-	
+
 	/**
 	 * INSERT, UPDATE 또는 DELETE SQL을 실행하고 영향받은 행 수를 반환한다.
 	 *
@@ -105,14 +134,19 @@ public class JdbcTemplate {
 			String query,
 			Object... args
 			) throws SQLException {
-		try (Connection conn = this.dataSource.getConnection();
-			PreparedStatement stmt = conn.prepareStatement(query);) {
-			
-			bindParameters(stmt, args);
-			return stmt.executeUpdate();	
-		}
+		// 활성 트랜잭션 연결 또는 임시 연결을 받아 SQL을 실행한다.
+		return transactions.withConnection(conn -> {
+			// 물음표 바인딩용 PreparedStatement를 만들고 블록 종료 시 닫는다.
+			try (PreparedStatement stmt = conn.prepareStatement(query)) {
+
+				// SQL 물음표 순서대로 인자를 설정한다.
+				bindParameters(stmt, args);
+				// 변경 SQL을 실행하고 영향받은 행 수를 반환한다.
+				return stmt.executeUpdate();
+			}
+		});
 	}
-	
+
 	/**
 	 * 파라미터를 SQL의 물음표(?) 순서대로 바인딩한다.
 	 *
@@ -124,7 +158,9 @@ public class JdbcTemplate {
 	        PreparedStatement stmt,
 	        Object... args
 	) throws SQLException {
+	    // SQL 인자를 전달받은 순서대로 처리한다.
 	    for (int i = 0; i < args.length; i++) {
+	        // 배열 인덱스에 1을 더한 JDBC 위치에 값을 바인딩한다.
 	        stmt.setObject(i + 1, args[i]);
 	    }
 	}

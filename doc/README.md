@@ -1,6 +1,6 @@
 # simple-jorm 학습 문서
 
-학습 순서대로 번호를 붙였다. 현재는 **02 Mapper 단계의 기본 CRUD 구현·검증까지 완료**했으며, 다음 작업은 트랜잭션 관리다.
+학습 순서대로 번호를 붙였다. 현재는 **03 트랜잭션 단계의 Service 프록시와 REQUIRED·rollbackOnly 구현·검증까지 완료**했다. 다음 학습 단계는 엔티티 CRUD다.
 
 ## 폴더 구조
 
@@ -36,6 +36,7 @@ doc/
 | 00 | [진행 상황](00-overview/01-progress.md), [Java 데이터 접근 생태계](00-overview/02-java-orm-ecosystem.md) | 전체 안내 |
 | 01 | [JDBC 실행과 결과 매핑](01-jdbc/01-jdbc-and-row-mapping.md) | 구현 완료 |
 | 02 | [JVM부터 프록시 호출까지](02-mapper/01-proxy-execution.md), [테스트와 다음 작업](02-mapper/02-tests-and-next-steps.md) | 기본 CRUD 완료 |
+| 03 | [Connection 공유와 트랜잭션](03-transaction/01-connection-and-transaction.md) | Service 프록시·REQUIRED 완료 |
 | 실험 | [실험 목록과 재현 안내](lab/README.md) | 학습 순서와 별도로 관리 |
 
 ## 번호와 관리 규칙
