@@ -1,6 +1,6 @@
 # 04-01. 엔티티 메타데이터와 INSERT 자동 생성
 
-기준일: 2026-11-02. 현재는 메타데이터 분석, ID 직접 지정 방식의 `persist()`, ID 조회 `find()`를 구현했다. 수정·삭제는 아직 없다.
+기준일: 2026-11-02. 현재는 메타데이터 분석, 직접 지정·IDENTITY·UUID ID를 지원하는 `persist()`, ID 조회 `find()`를 구현했다. 수정·삭제는 아직 없다.
 
 ## 실제 기술과의 연결
 
@@ -35,7 +35,7 @@ persist(user)
 
 - `@Table`과 비어 있지 않은 테이블명이 필요하다. 별도의 `@Entity`는 없다.
 - 직접 선언된 인스턴스 필드만 분석하며 static·synthetic 필드는 제외한다.
-- ID 필드는 정확히 하나여야 하고 null ID는 저장 전에 거부한다. 자동 생성 ID는 지원하지 않는다.
+- ID 필드는 정확히 하나여야 하고 null ID는 저장 전에 거부한다. 이 규칙은 직접 지정 ID 기준이며, [IDENTITY](03-identity-generated-id.md)·[UUID 생성 ID](04-uuid-generated-id.md)는 null 상태로 저장을 요청한다.
 - 비어 있거나 중복된 컬럼명, final 인스턴스 필드를 거부한다.
 - 상속 필드, 관계 매핑, 복합 ID, SQL 방언별 식별자 인용·정규화는 지원하지 않는다.
 - persist는 전달된 객체에서 값을 읽기만 하므로 기본 생성자가 없어도 된다. find는 구체적인 클래스와 접근 가능한 기본 생성자가 필요하다.
@@ -53,4 +53,4 @@ persist(user)
 .\gradlew.bat test
 ```
 
-`find(Class<T>, id)`는 [ID 조회와 객체 생성](02-find-by-id.md)에서 설명한다. 다음은 생성 ID 반영과 엔티티 UPDATE·DELETE다.
+`find(Class<T>, id)`는 [ID 조회와 객체 생성](02-find-by-id.md)에서 설명한다. 이후 추가한 [IDENTITY 생성 ID](03-identity-generated-id.md)를 참고한다. 다음은 엔티티 UPDATE·DELETE다.

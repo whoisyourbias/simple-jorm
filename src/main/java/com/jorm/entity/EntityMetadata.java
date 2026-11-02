@@ -5,6 +5,7 @@ import java.lang.reflect.Modifier;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class EntityMetadata {
 
@@ -48,6 +49,22 @@ public class EntityMetadata {
                         "접근할 수 없는 필드입니다: " + field.getName());
             }
 
+            // 생성 전략마다 지원하는 ID 타입이 다르며, null로 미저장 상태를 표현한다.
+            if (field.isAnnotationPresent(GeneratedValue.class)) {
+                if (!field.isAnnotationPresent(Id.class)) {
+                    throw new IllegalArgumentException("@GeneratedValue는 @Id 필드에만 사용할 수 있습니다.");
+                }
+                GenerationType strategy = field.getAnnotation(GeneratedValue.class).strategy();
+                boolean supported = switch (strategy) {
+                    case IDENTITY -> field.getType() == Long.class || field.getType() == Integer.class;
+                    case UUID -> field.getType() == UUID.class || field.getType() == String.class;
+                };
+                if (!supported) {
+                    throw new IllegalArgumentException(
+                            strategy + " 생성 ID에 지원하지 않는 타입입니다: " + field.getType().getName());
+                }
+            }
+
             // @Column이 없으면 Java 필드명을 컬럼명으로 사용한다.
             Column column = field.getAnnotation(Column.class);
             String columnName =
@@ -77,6 +94,26 @@ public class EntityMetadata {
 
         // 분석 이후 컬럼 구성이 바뀌지 않도록 변경을 막는다.
         this.columns = Collections.unmodifiableMap(discoveredColumns);
+    }
+
+    /** 생성 ID 여부는 검증된 ID 필드의 선언으로 판단한다. */
+    public boolean isGeneratedId() {
+        return idField.isAnnotationPresent(GeneratedValue.class);
+    }
+
+    /** 생성 전략이 없으면 null이다. 직접 지정 ID와 생성 ID를 구분한다. */
+    public GenerationType getGenerationType() {
+        GeneratedValue generatedValue = idField.getAnnotation(GeneratedValue.class);
+        return generatedValue == null ? null : generatedValue.strategy();
+    }
+
+    /** @Column 별칭을 포함한 실제 ID 컬럼명이다. */
+    public String getIdColumnName() {
+        return columns.entrySet().stream()
+                .filter(entry -> entry.getValue().equals(idField))
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("ID 컬럼 매핑이 없습니다."));
     }
 
     /** SQL 생성에 사용할 테이블명을 반환한다. */
