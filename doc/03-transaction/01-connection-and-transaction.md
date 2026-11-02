@@ -1,5 +1,7 @@
 # 03-01. Connection 공유와 트랜잭션
 
+이 단계는 특정 ORM이 아니라 Spring의 프로그램·프록시 기반 트랜잭션 관리와 REQUIRED 참여 개념에 대응한다. 실제 구현은 Spring을 호출하지 않고 JDBC 위에 직접 작성했다. [단계별 실제 기술 대응과 차이](../reference/03-learning-stage-mapping.md)를 함께 참고한다.
+
 트랜잭션은 같은 Connection에서 실행한 변경을 함께 확정하거나 취소하는 단위다.
 
 ```java

@@ -2,7 +2,7 @@
 
 기준일: 2026-11-02
 
-**현재: Service 트랜잭션 프록시와 REQUIRED 참여·rollbackOnly 구현 완료. 다음 학습 단계: 엔티티 CRUD.**
+**현재: 엔티티 메타데이터, ID 직접 지정 INSERT와 ID 기반 find 구현 완료. 다음: 생성 ID 반영과 엔티티 UPDATE·DELETE.**
 
 ## 단계별 현황
 
@@ -12,19 +12,28 @@
 | 02 Mapper | @Select, 프록시 생성, 핸들러, Object 메서드 처리 | 완료 |
 | 02 Mapper | 단건·목록 조회, INSERT·UPDATE·DELETE, 인자 전달 | 완료 |
 | 03 트랜잭션 | Connection 공유, commit·rollback, Service 프록시, REQUIRED·rollbackOnly | 완료 |
-| 04 엔티티 CRUD | 테이블·ID 매핑과 SQL 생성 | 미구현 |
+| 04 엔티티 CRUD | @Table·@Id·@Column, 메타데이터 캐시, INSERT·persist, ID 조회·find | 완료 |
+| 04 엔티티 CRUD | 엔티티 UPDATE·DELETE, 생성 ID 반영 | 미구현 |
 | 05 영속성 컨텍스트 | 객체 동일성, 변경 감지 | 미구현 |
 
 ## 현재 동작과 검증
 
 - JDBC: 단건·목록 조회와 데이터 변경 지원. 단건 조회는 결과가 없으면 null, 여러 행이면 첫 행 반환.
 - Mapper: @Select로 단건·목록 조회, @Insert·@Update·@Delete로 변경 후 영향받은 행 수 반환.
-- 검증: Mapper·트랜잭션·자기 호출·Service 간 REQUIRED 참여 테스트를 포함해 `gradlew.bat test` 전체 통과.
+- 트랜잭션: 같은 스레드·관리자의 연결 공유, Service 프록시, REQUIRED 참여와 rollbackOnly 지원.
+- 엔티티: 직접 정의한 어노테이션을 분석해 INSERT를 즉시 실행한다. ID는 직접 지정하며 변경 행 수를 반환한다. find는 ID 조건으로 조회해 새 객체에 필드를 채우고, 결과가 없으면 null을 반환한다.
+- 검증: 엔티티 테스트 26개를 포함한 전체 93개 테스트 통과.
 - 제약: 생성 ID 반환·default 메서드 실행은 미지원. 변경 메서드는 int만 지원.
 
 ## 다음 작업
 
-1. 엔티티의 테이블·ID 매핑과 SQL 자동 생성 설계.
+1. 생성 ID 반영과 엔티티 UPDATE·DELETE 확장.
+
+## 구현 단계가 대응하는 기술
+
+01은 Spring JDBC식 실행·행 매핑, 02는 MyBatis식 SQL Mapper, 03은 Spring식 트랜잭션 관리, 04는 Hibernate 같은 ORM의 엔티티 매핑·SQL 생성 개념을 학습한다. 05는 JPA 영속성 컨텍스트를 다룰 예정이며 미구현이다.
+
+[단계별 대응표와 실제 기술과의 차이](../reference/03-learning-stage-mapping.md)를 참고한다. JPA는 명세이고, 현재 simple-jorm은 그 표준 구현체가 아니다.
 
 [Connection 공유와 트랜잭션](../03-transaction/01-connection-and-transaction.md)에 사용 예제와 제약을 정리했다.
 
@@ -32,6 +41,7 @@
 
 - [01 JDBC 실행과 매핑](../01-jdbc/01-jdbc-and-row-mapping.md)
 - [02 Mapper 실행 흐름](../02-mapper/01-proxy-execution.md) · [테스트와 다음 작업](../02-mapper/02-tests-and-next-steps.md)
+- [04 엔티티 매핑과 INSERT](../04-entity-crud/01-metadata-and-insert.md) · [ID 조회](../04-entity-crud/02-find-by-id.md)
 - [별도 성능 실험](../lab/README.md)
 
 ## 상세 기록

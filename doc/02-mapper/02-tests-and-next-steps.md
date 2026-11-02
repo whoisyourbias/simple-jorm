@@ -1,5 +1,7 @@
 # 02-02. Mapper 기능, 테스트와 다음 작업
 
+이 단계는 MyBatis처럼 직접 작성한 SQL을 Mapper 메서드에 연결하는 기능을 학습한다. Hibernate식 엔티티 메타데이터 기반 SQL 생성과는 별도 경로다. [단계별 실제 기술 대응과 차이](../reference/03-learning-stage-mapping.md)를 함께 참고한다.
+
 ## 현재 기능
 
 | 어노테이션 | 실행 경로 | 반환값 |
@@ -41,9 +43,9 @@ SQL 어노테이션은 메서드당 하나만 허용한다. 없으면 Unsupporte
 
 ## 다음 작업
 
-1. 트랜잭션 관리자에서 Connection 공유와 commit·rollback을 구현한다.
-2. 여러 Mapper 작업 중 하나가 실패하면 전체가 롤백되는지 검증한다.
-3. Service 프록시로 트랜잭션 경계를 적용한다.
+트랜잭션 관리자의 연결 공유·일괄 롤백, Service 프록시, REQUIRED 참여까지 구현·검증을 완료했다. [트랜잭션 학습](../03-transaction/01-connection-and-transaction.md)으로 이어진다.
+
+현재는 [엔티티 메타데이터·INSERT](../04-entity-crud/01-metadata-and-insert.md)와 [ID 조회](../04-entity-crud/02-find-by-id.md)까지 구현했다. 다음은 생성 ID 반영과 엔티티 UPDATE·DELETE다.
 
 생성 ID 반환과 컴파일 타임 어노테이션 검사는 별도 확장 사항이다.
 

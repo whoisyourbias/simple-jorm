@@ -1,5 +1,7 @@
 # 01-01. JDBC 실행과 결과 매핑
 
+이 단계는 Spring JDBC의 JdbcTemplate·RowMapper처럼 SQL 실행과 결과 매핑을 분리하는 역할을 학습한다. 엔티티 상태를 관리하는 ORM 계층은 아직 이 단계의 범위가 아니다. [단계별 실제 기술 대응과 차이](../reference/03-learning-stage-mapping.md)를 함께 참고한다.
+
 ## 이 단계의 목적
 
 SQL 실행, 파라미터 바인딩, 자원 정리와 객체 매핑을 분리한다. 이 코드가 다음 Mapper 단계에서 실제 DB 작업을 담당한다.

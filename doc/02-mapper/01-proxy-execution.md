@@ -1,5 +1,7 @@
 # 02-01. JVM 실행부터 Mapper 프록시 호출까지
 
+이 단계의 SQL 어노테이션·Mapper 인터페이스는 MyBatis식 SQL Mapper에 대응한다. 아래 JVM·프록시 설명에는 초기 SQL 출력 단계의 예제가 포함되어 있으며, 현재 핸들러는 JdbcTemplate으로 실제 SQL을 실행한다. [단계별 실제 기술 대응과 차이](../reference/03-learning-stage-mapping.md)를 함께 참고한다.
+
 작성일: 2026-10-30
 
 > 이 문서는 SQL 출력까지만 구현했던 초기 단계의 실행 과정을 보존한다. 현재는 JDBC 조회와 INSERT·UPDATE·DELETE를 지원한다. 최신 동작과 테스트는 [현재 Mapper 기능](02-tests-and-next-steps.md)을 참고한다.
@@ -155,10 +157,10 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    subgraph Current["현재 구현"]
+    subgraph Current["초기 학습 예제"]
         A["호출 코드"] --> B["Mapper 프록시"] --> C["핸들러가 SQL 출력"]
     end
-    subgraph Future["이후 확장할 구조"]
+    subgraph Future["현재 확장된 구조"]
         D["호출 코드"] --> E["Service 트랜잭션 프록시"] --> F["실제 Service 객체"]
         F --> G["Mapper 프록시"] --> H["핸들러 → JdbcTemplate → DB"]
     end
@@ -166,11 +168,10 @@ flowchart LR
 
 현재 프로젝트의 프록시는 Spring AOP가 아니라 직접 JDK Proxy API로 만든 객체다. Spring AOP는 일반적으로 실제 대상 객체 앞에서 부가 기능을 적용하고 대상 객체로 위임한다. 현재 Mapper 프록시는 별도의 Mapper 구현 객체 없이 핸들러에서 동작을 처리한다.
 
-트랜잭션도 아직 구현하지 않았다. 이후 일반적인 JDBC 트랜잭션 구조를 구현한다면, 트랜잭션 매니저가 Connection을 현재 스레드에 연결하고 `JdbcTemplate`이 재사용하도록 만든다. 프록시 자체에 모든 호출의 트랜잭션 컨텍스트를 공유해서 저장하는 구조는 아니다.
+현재 트랜잭션 매니저는 Connection을 현재 스레드에 연결하고 `JdbcTemplate`이 재사용하도록 구현되어 있다. 프록시 자체에 모든 호출의 트랜잭션 컨텍스트를 공유해서 저장하는 구조는 아니다.
 
-## 다음 작업
+## 이후 구현과 현재 다음 작업
 
-1. 완료: `MapperFactoryTest`의 6개 테스트로 프록시 생성, SQL 출력, 인자 없는 호출, Object 메서드와 예외 처리를 검증했다.
-2. 핸들러에 `JdbcTemplate`을 전달하도록 팩토리와 생성자를 확장한다.
-3. `args`를 SQL 인자로 전달하고 반환 타입에 맞게 행을 매핑한다.
-4. SQL 출력 후 `null`을 반환하던 부분을 실제 조회 결과 반환으로 바꾼다.
+초기 SQL 출력 프록시에서 JdbcTemplate 위임·파라미터 바인딩·단건·목록 조회·변경 SQL 반환까지 확장했다. Service 트랜잭션 프록시와 REQUIRED 참여도 완료했다.
+
+현재 엔티티 메타데이터·INSERT·ID 조회까지 구현했으며 다음 작업은 생성 ID 반영과 엔티티 UPDATE·DELETE다. [최신 진행 상황](../00-overview/01-progress.md)을 참고한다.

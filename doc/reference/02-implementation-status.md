@@ -1,6 +1,6 @@
 # 구현 상세와 현재 제약
 
-기준일: 2026-10-30. 단계별 요약은 [진행 상황](../00-overview/01-progress.md)을 참고한다.
+기준일: 2026-11-02. 단계별 요약은 [진행 상황](../00-overview/01-progress.md)을 참고한다.
 
 ## JDBC와 자동 매핑
 
@@ -10,7 +10,7 @@
 - `RowMapper<T>`는 조회 결과 한 행을 객체로 변환하는 콜백이다.
 - `BeanPropertyRowMapper<T>`는 기본 생성자와 필드 리플렉션을 사용한다. 컬럼 라벨과 필드명을 대소문자 구분 없이 연결한다.
 - 상속 필드, final 필드, record, 별도 타입 변환은 지원하지 않는다.
-- 각 JDBC 호출이 Connection을 개별 획득·반환한다. 여러 호출이 공유하는 트랜잭션 관리자는 없다.
+- 활성 트랜잭션 안에서는 같은 관리자의 연결을 공유하고 Statement·ResultSet만 닫는다. 밖에서는 호출별 연결을 획득·반환한다.
 - H2 기반 실행·매핑 테스트가 있다. [JDBC 상세](../01-jdbc/01-jdbc-and-row-mapping.md).
 
 ## Mapper 프록시
@@ -24,11 +24,24 @@
 - `MapperFactoryTest`의 20개 테스트를 포함한 전체 테스트를 검증한다.
 - [실행 흐름](../02-mapper/01-proxy-execution.md)과 [테스트 목록](../02-mapper/02-tests-and-next-steps.md).
 
+## 트랜잭션과 엔티티
+
+- TransactionManager는 스레드별 연결과 rollbackOnly 원인을 관리한다. REQUIRED 참여자는 기존 연결을 사용하며 바깥 호출이 commit·rollback과 연결 정리를 담당한다.
+- Service 프록시는 구현 메서드의 @Transactional을 검사한다. 자기 호출, 두 Service 간 참여, 예외 전파·삼킴 이후 전체 롤백을 테스트했다.
+- EntityMetadata는 @Table·@Id·@Column, 단일 ID, 컬럼-필드 대응을 분석한다. static·synthetic 필드는 제외하고 final 필드·잘못된 선언은 거부한다.
+- EntityManager는 클래스별 메타데이터를 캐시하고 persist에서 ID를 포함한 INSERT를 즉시 실행한다. find는 메타데이터로 SELECT를 만들고 기본 생성자로 새 객체를 생성한다. 생성 ID·엔티티 UPDATE·DELETE·영속성 컨텍스트는 없다.
+- find 테스트 12개를 추가해 엔티티 테스트 26개를 포함한 전체 93개가 통과했다.
+
+## 실제 기술과의 대응
+
+JDBC·행 매핑은 Spring JDBC, Mapper 인터페이스·SQL 어노테이션은 MyBatis, 트랜잭션 계층은 Spring의 트랜잭션 관리, 엔티티 매핑·INSERT 생성은 Hibernate 같은 ORM의 일부 역할과 대응한다. JPA는 구현 라이브러리가 아닌 표준이며, 현재 EntityManager는 JPA 구현체가 아니다.
+
+[단계별 비교·차이·공식 근거](03-learning-stage-mapping.md)와 [엔티티 구현 문서](../04-entity-crud/01-metadata-and-insert.md)를 참고한다.
+
 ## 다음 작업
 
-1. 트랜잭션 관리자로 현재 스레드의 Connection을 공유한다.
-2. 여러 Mapper 호출을 하나의 commit·rollback 범위로 묶고 H2로 검증한다.
-3. Service 프록시와 연결한 뒤 엔티티 CRUD·영속성 컨텍스트로 확장한다.
+1. 생성 ID 반영과 엔티티 UPDATE·DELETE를 추가한다.
+2. 이후 영속성 컨텍스트의 객체 동일성·변경 감지·flush를 학습한다.
 
 ## 실험과 검증 기록
 

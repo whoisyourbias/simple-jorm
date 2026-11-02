@@ -1,6 +1,6 @@
 # Java ORM과 데이터 접근 생태계
 
-작성일: 2026-10-30
+작성일: 2026-10-30 / 구현 단계 갱신: 2026-11-02
 
 관계형 데이터베이스를 사용하는 Java 기술을 대상으로 정리한다. 아래 계층은 역할을 이해하기 위한 구분이며, 모든 라이브러리가 정확히 한 계층에만 속하지는 않는다.
 
@@ -126,35 +126,19 @@ R2DBC는 JDBC 드라이버를 교체하는 옵션이 아니라 별도의 연결 
 
 ## 5. simple-jorm의 위치와 학습 순서
 
-현재 목표는 JDBC 위에서 SQL 실행의 반복 코드를 직접 추상화하는 것이다. 아래는 이 프로젝트에 대한 학습 제안이며, 앞부분만 구현해도 독립적인 학습 결과가 된다.
+현재는 JDBC 실행·결과 매핑, Mapper CRUD, Service 트랜잭션 프록시·REQUIRED, 엔티티 메타데이터와 INSERT까지 구현했다. ID 조회까지 완료했고 영속성 컨텍스트는 미구현이다.
 
-```mermaid
-flowchart TB
-    USER["호출 코드: queryForObject SQL, RowMapper, args"]
-    TEMPLATE["직접 만든 JdbcTemplate"]
-    DS["주입받은 DataSource"]
-    JDBC["Connection / PreparedStatement / ResultSet"]
-    MAPPER["직접 작성한 RowMapper: 한 행을 객체로 변환"]
-    RESULT["User 반환"]
+| 단계 | 직접 만든 기능 | 가까운 실제 기술·기능 | 상태 |
+|---|---|---|---|
+| 01 | JdbcTemplate·RowMapper·리플렉션 자동 매핑 | Spring JDBC의 실행·매핑 추상화 | 완료 |
+| 02 | SQL 어노테이션·Mapper 프록시 CRUD | MyBatis의 SQL Mapper | 기본 CRUD 완료 |
+| 03 | Connection 공유·Service 프록시·REQUIRED·rollbackOnly | Spring의 프로그램·선언적 트랜잭션 | 완료 |
+| 04 | 엔티티 메타데이터·SQL 생성 | Hibernate 등 ORM의 매핑 처리, JPA EntityManager의 저장 진입 형태 | INSERT·ID 조회 완료, 수정·삭제 미구현 |
+| 05 | 객체 동일성·변경 감지·flush | JPA 영속성 컨텍스트·Hibernate 상태 관리 | 미구현 |
 
-    USER --> TEMPLATE
-    TEMPLATE --> DS
-    DS -->|"Connection 획득"| JDBC
-    TEMPLATE -->|"바인딩 및 실행"| JDBC
-    JDBC -->|"조회 결과"| MAPPER
-    MAPPER --> RESULT
-```
+구현 클래스별 설명, MyBatis·Spring·JPA와의 차이, 공식 근거는 [단계별 대응 문서](03-learning-stage-mapping.md)에 모았다. 이 비교는 학습 역할의 대응이며 JPA 호환성이나 전체 프레임워크 구현 완료를 의미하지 않는다.
 
-| 순서 | 직접 만들 기능 | 배울 내용 |
-|---|---|---|
-| 1 | JdbcTemplate + RowMapper | 자원 정리, 콜백, 파라미터 바인딩, 단건 조회 결과 수 검증 |
-| 2 | 리플렉션 자동 매핑 | 컬럼과 필드 연결, 타입 변환, 메타데이터 |
-| 3 | @Select + Mapper 프록시 | 메서드 호출을 SQL 실행으로 연결 |
-| 4 | 트랜잭션 관리자 | 여러 작업의 Connection 공유, commit·rollback, 자원 반환 |
-| 5 | 엔티티 기반 CRUD | 테이블·ID 매핑과 SQL 생성 |
-| 6 | 영속성 컨텍스트와 변경 감지 | 객체 동일성, 스냅샷, flush |
-
-현재 `JdbcTemplate`과 `RowMapper` 단계는 SQL 실행·매핑 추상화에 해당한다. 이후 엔티티 메타데이터와 SQL 생성, 상태 관리 등을 추가하면서 ORM의 구조를 학습할 수 있다.
+현재 EntityManager는 구조 정보만 캐시하고 persist 중에 INSERT를 실행한다. JPA의 엔티티 인스턴스 관리·변경 감지는 아직 없다. 캐시의 ConcurrentHashMap 사용을 실제 JPA EntityManager의 동시 스레드 공유 가능성으로 해석해서도 안 된다.
 
 ## 6. 의존성 관리 관점
 
