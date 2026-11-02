@@ -13,24 +13,24 @@ Spring Boot 애플리케이션이나 JPA 구현체가 아니다. 서버 실행 �
 
 ## 현재 지원 범위
 
-기준: 2026-11-02. 엔티티 CRUD 단계의 메타데이터·INSERT·ID 조회까지 구현했다.
+기준: 2026-11-02. 엔티티 CRUD 단계의 메타데이터·INSERT·ID 조회·IDENTITY·UUID 생성 ID 반영까지 구현했다.
 
 | 계층 | 지원 기능 | 주요 제약 |
 |---|---|---|
 | JDBC | 파라미터 바인딩, 단건·목록 조회, 변경 SQL, 자원 정리, 수동·자동 행 매핑 | 단건 조회는 결과가 없으면 `null`, 여러 행이면 첫 행 반환 |
 | Mapper | `@Select`, `@Insert`, `@Update`, `@Delete`, JDK 프록시 | 조회는 매핑 가능한 객체 또는 `List<T>`, 변경은 `int` 반환. default 메서드 실행 미지원 |
 | 트랜잭션 | 같은 스레드·관리자의 Connection 공유, commit·rollback, REQUIRED 참여, rollbackOnly, Service 프록시 | 자기 호출은 프록시를 통과하지 않음. 다른 관리자·스레드와 트랜잭션 공유 안 됨 |
-| 엔티티 | `@Table`, `@Id`, `@Column`, 클래스별 메타데이터 캐시, `persist`, `find` | 직접 지정한 단일 ID 사용. `persist`는 즉시 INSERT하고 변경 행 수 반환 |
+| 엔티티 | `@Table`, `@Id`, `@Column`, 클래스별 메타데이터 캐시, `persist`, `find` | 직접 지정 또는 IDENTITY·UUID 단일 ID 사용. `persist`는 즉시 INSERT하고 변경 행 수 반환 |
 
 아직 구현하지 않은 기능:
 
-- 자동 생성 ID 회수·객체 반영, 엔티티 UPDATE·DELETE.
+- 엔티티 UPDATE·DELETE, SEQUENCE·TABLE·AUTO ID 생성 전략.
 - 영속성 컨텍스트, 1차 캐시, 객체 동일성, 변경 감지, flush.
 - 관계 매핑, 복합 ID, 상속 필드 매핑, 별도 값 타입 변환.
 
 `find`는 매번 SELECT하고 새 객체를 만든다. 조회 타입에는 접근 가능한 기본 생성자가 필요하다. `persist`에는 기본 생성자가 필요 없다. 같은 이름의 JPA API와 동작이 같다고 가정하지 않는다.
 
-다음 학습 순서는 생성 ID 반영·엔티티 UPDATE·DELETE → 영속성 컨텍스트다. 기능 변경은 요청 범위에 맞춰 진행한다.
+다음 학습 순서는 엔티티 UPDATE·DELETE → 영속성 컨텍스트다. 기능 변경은 요청 범위에 맞춰 진행한다.
 
 ## 환경과 검증 명령
 
@@ -61,7 +61,7 @@ bash ./gradlew build
 
 Windows PowerShell에서는 `bash ./gradlew` 대신 `.\gradlew.bat`을 사용한다.
 
-테스트 HTML 보고서는 `build/reports/tests/test/index.html`, XML 결과는 `build/test-results/test/`에 생성된다. 기존 진행 문서에는 전체 93개 테스트 통과가 기록되어 있다. 이 수치를 현재 실행 결과로 간주하지 말고, 검증 시 실행한 명령·결과를 별도로 보고한다. JDK 21을 찾지 못하면 먼저 로컬 설치와 Gradle toolchain 탐지를 확인한다.
+테스트 HTML 보고서는 `build/reports/tests/test/index.html`, XML 결과는 `build/test-results/test/`에 생성된다. 기존 진행 문서에는 전체 117개 테스트 통과가 기록되어 있다. 이 수치를 현재 실행 결과로 간주하지 말고, 검증 시 실행한 명령·결과를 별도로 보고한다. JDK 21을 찾지 못하면 먼저 로컬 설치와 Gradle toolchain 탐지를 확인한다.
 
 ## 코드 구조와 탐색 지점
 
@@ -145,6 +145,27 @@ public class EntityExample {
 트랜잭션을 공유할 `JdbcTemplate`과 Service 프록시에는 **같은 `TransactionManager` 인스턴스**를 전달한다. `new JdbcTemplate(dataSource)`는 자체 관리자를 만들므로, 별도로 만든 관리자의 `execute`와 연결을 공유하지 않는다.
 
 Mapper는 `MapperFactory.create(MapperInterface.class, jdbc)`로 생성한다. Service 프록시는 `TransactionProxyFactory.create(ServiceInterface.class, target, transactions)`로 생성하며 구현 메서드의 `@Transactional`을 검사한다. 실제 선언·호출 예제는 [Mapper 문서](doc/02-mapper/01-proxy-execution.md)와 [트랜잭션 문서](doc/03-transaction/01-connection-and-transaction.md)를 참고한다.
+
+## IDENTITY 생성 ID
+
+```java
+@Id
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+@Column("user_id")
+Long id; // persist 전에 null, 성공 후 DB가 생성한 값
+```
+
+`com.jorm.entity`의 자체 어노테이션과 enum을 사용한다. `Long`·`Integer`만 지원하며 기본 전략도 IDENTITY다. DB 컬럼은 별도로 IDENTITY/자동 증가 컬럼으로 준비해야 한다. 생성 ID를 INSERT에서 제외한 뒤 같은 연결에서 생성 키를 회수한다. 이미 ID가 있는 객체의 재저장은 거부한다. 롤백 후 DB 행은 사라지지만 객체에 반영된 ID는 남는다. [동작과 제약](doc/04-entity-crud/03-identity-generated-id.md).
+
+## UUID 생성 ID
+
+```java
+@Id
+@GeneratedValue(strategy = GenerationType.UUID)
+UUID id; // java.util.UUID. String 타입도 지원
+```
+
+INSERT 전에 `UUID.randomUUID()`로 v4 UUID를 생성해 객체에 넣고 ID 컬럼도 함께 저장한다. DB의 자동 증가 설정은 필요 없다. UUID 필드는 H2의 UUID 컬럼, String 필드는 VARCHAR(36) 컬럼으로 검증했다. SQL 실패나 롤백 후에도 생성된 ID는 객체에 남는다. 기본 전략은 계속 IDENTITY다. [사용법과 실패 동작](doc/04-entity-crud/04-uuid-generated-id.md).
 
 ## 에이전트의 변경 작업 절차
 

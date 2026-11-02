@@ -147,6 +147,35 @@ public class JdbcTemplate {
 		});
 	}
 
+    /**
+     * 단일 행을 INSERT하고 지정 컬럼의 생성 키를 반환한다.
+     * INSERT와 키 회수는 같은 연결에서 수행하며 기존 트랜잭션에 참여한다.
+     * 키가 없거나 지정 타입으로 변환할 수 없으면 SQLException을 전달한다.
+     */
+    public <T> T insertReturningKey(
+            String query, String keyColumn, Class<T> keyType, Object... args
+    ) throws SQLException {
+        return transactions.withConnection(conn -> {
+            // 드라이버가 다른 생성 컬럼을 반환하지 않도록 ID 컬럼을 명시한다.
+            try (PreparedStatement stmt = conn.prepareStatement(query, new String[]{keyColumn})) {
+                bindParameters(stmt, args);
+                if (stmt.executeUpdate() != 1) {
+                    throw new SQLException("생성 키 INSERT는 정확히 한 행을 변경해야 합니다.");
+                }
+                try (ResultSet keys = stmt.getGeneratedKeys()) {
+                    if (!keys.next()) {
+                        throw new SQLException("DB가 생성 키를 반환하지 않았습니다.");
+                    }
+                    T key = keys.getObject(1, keyType);
+                    if (key == null || keys.next()) {
+                        throw new SQLException("정확히 하나의 null이 아닌 생성 키가 필요합니다.");
+                    }
+                    return key;
+                }
+            }
+        });
+    }
+
 	/**
 	 * 파라미터를 SQL의 물음표(?) 순서대로 바인딩한다.
 	 *

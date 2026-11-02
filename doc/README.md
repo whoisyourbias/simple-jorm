@@ -1,6 +1,6 @@
 # simple-jorm 학습 문서
 
-학습 순서대로 번호를 붙였다. 현재는 **04 엔티티 CRUD 단계의 메타데이터·INSERT·ID 조회 구현과 테스트까지 완료**했다. 다음은 생성 ID 반영과 엔티티 UPDATE·DELETE다.
+학습 순서대로 번호를 붙였다. 현재는 **04 엔티티 CRUD 단계의 메타데이터·INSERT·ID 조회·IDENTITY·UUID 생성 ID 구현과 테스트까지 완료**했다. 다음은 엔티티 UPDATE·DELETE다.
 
 ## 폴더 구조
 
@@ -19,7 +19,9 @@ doc/
 │  └─ 01-connection-and-transaction.md
 ├─ 04-entity-crud/                # 현재: 메타데이터·INSERT·ID 조회
 │  ├─ 01-metadata-and-insert.md
-│  └─ 02-find-by-id.md
+│  ├─ 02-find-by-id.md
+│  ├─ 03-identity-generated-id.md
+│  └─ 04-uuid-generated-id.md
 ├─ reference/                     # 기술·구현 상세 자료
 │  ├─ 01-java-orm-ecosystem.md
 │  ├─ 02-implementation-status.md
@@ -43,7 +45,7 @@ doc/
 | 01 | [JDBC 실행과 결과 매핑](01-jdbc/01-jdbc-and-row-mapping.md) | 구현 완료 |
 | 02 | [JVM부터 프록시 호출까지](02-mapper/01-proxy-execution.md), [테스트와 다음 작업](02-mapper/02-tests-and-next-steps.md) | 기본 CRUD 완료 |
 | 03 | [Connection 공유와 트랜잭션](03-transaction/01-connection-and-transaction.md) | Service 프록시·REQUIRED 완료 |
-| 04 | [엔티티 매핑과 INSERT](04-entity-crud/01-metadata-and-insert.md), [ID 조회](04-entity-crud/02-find-by-id.md) | 메타데이터·INSERT·find 완료 |
+| 04 | [엔티티 매핑과 INSERT](04-entity-crud/01-metadata-and-insert.md), [ID 조회](04-entity-crud/02-find-by-id.md) | 메타데이터·INSERT·find·IDENTITY·UUID 완료 |
 | 실험 | [실험 목록과 재현 안내](lab/README.md) | 학습 순서와 별도로 관리 |
 
 ## 단계별 실제 기술과의 대응
@@ -65,3 +67,6 @@ Spring JDBC식 실행 → MyBatis식 SQL Mapper → Spring식 트랜잭션 → H
 - [Mapper 구현 전 진행 기록](history/01-before-mapper.md)
 
 `overview`에는 요약과 링크를 두고, 상세 자료는 `reference`, 당시 진행 상태는 `history`에 보존한다.
+
+- [IDENTITY 생성 ID와 트랜잭션](04-entity-crud/03-identity-generated-id.md)
+- [UUID 생성 ID](04-entity-crud/04-uuid-generated-id.md)

@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class EntityManager {
@@ -34,36 +35,50 @@ public class EntityManager {
         // 실제 객체의 클래스에 해당하는 매핑 정보를 가져온다.
         EntityMetadata metadata = getMetadata(entity.getClass());
 
-        // 현재 단계에서는 ID를 직접 지정하도록 한다.
-        if (readField(metadata.getIdField(), entity) == null) {
+        Object id = readField(metadata.getIdField(), entity);
+        boolean generated = metadata.isGeneratedId();
+        if (generated && id != null) {
+            throw new IllegalArgumentException("생성 ID는 저장 전에 null이어야 합니다.");
+        }
+        if (!generated && id == null) {
             throw new IllegalArgumentException("ID를 먼저 지정해야 합니다.");
         }
 
-        // LinkedHashMap의 순서대로 컬럼 이름을 연결한다.
-        String columnNames = String.join(
-                ", ", metadata.getColumns().keySet()
-        );
-
-        // 컬럼 개수만큼 물음표를 만든다.
-        String placeholders = String.join(
-                ", ",
-                Collections.nCopies(metadata.getColumns().size(), "?")
-        );
-
-        // 예: INSERT INTO users (id, user_name, email) VALUES (?, ?, ?)
-        String sql = "INSERT INTO " + metadata.getTableName()
-                + " (" + columnNames + ")"
-                + " VALUES (" + placeholders + ")";
-
-        // SQL 컬럼과 같은 순서로 객체에서 값을 읽는다.
-        List<Object> values = new ArrayList<>();
-
-        for (Field field : metadata.getColumns().values()) {
-            values.add(readField(field, entity));
+        GenerationType strategy = metadata.getGenerationType();
+        boolean identity = strategy == GenerationType.IDENTITY;
+        if (strategy == GenerationType.UUID) {
+            // UUID는 DB가 만들지 않는다. INSERT 전에 객체에 넣고 일반 컬럼처럼 바인딩한다.
+            UUID uuid = UUID.randomUUID();
+            writeId(metadata, entity, metadata.getIdField().getType() == String.class
+                    ? uuid.toString() : uuid);
         }
 
-        // 값은 SQL 문자열에 합치지 않고 파라미터로 바인딩한다.
-        return jdbcTemplate.update(sql, values.toArray());
+        // IDENTITY만 ID를 제외한다. UUID·직접 지정 ID는 컬럼과 값을 함께 수집한다.
+        List<String> columns = new ArrayList<>();
+        List<Object> values = new ArrayList<>();
+        for (Map.Entry<String, Field> column : metadata.getColumns().entrySet()) {
+            if (identity && column.getValue().equals(metadata.getIdField())) {
+                continue;
+            }
+            columns.add(column.getKey());
+            values.add(readField(column.getValue(), entity));
+        }
+        String sql = "INSERT INTO " + metadata.getTableName();
+        if (columns.isEmpty()) {
+            // ID만 선언한 엔티티도 DB의 기본값으로 한 행을 생성한다.
+            sql += " DEFAULT VALUES";
+        } else {
+            sql += " (" + String.join(", ", columns) + ") VALUES ("
+                    + String.join(", ", Collections.nCopies(columns.size(), "?")) + ")";
+        }
+        if (!identity) {
+            return jdbcTemplate.update(sql, values.toArray());
+        }
+
+        Object key = jdbcTemplate.insertReturningKey(sql, metadata.getIdColumnName(),
+                metadata.getIdField().getType(), values.toArray());
+        writeId(metadata, entity, key);
+        return 1;
     }
 
     /**
@@ -82,11 +97,7 @@ public class EntityManager {
 
         // @Id 필드명 대신 해당 필드에 연결된 실제 DB 컬럼명을 찾는다.
         // 예: Java 필드가 id이고 @Column("user_id")이면 WHERE에는 user_id를 사용한다.
-        String idColumn = metadata.getColumns().entrySet().stream()
-                .filter(entry -> entry.getValue().equals(metadata.getIdField()))
-                .map(Map.Entry::getKey)
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("ID 컬럼 매핑이 없습니다."));
+        String idColumn = metadata.getIdColumnName();
 
         // SELECT 컬럼과 필드 목록을 같은 순서로 구성해 위치별 값이 서로 대응하게 한다.
         String columnNames = String.join(", ", metadata.getColumns().keySet());
@@ -140,6 +151,15 @@ public class EntityManager {
                 entityType,
                 EntityMetadata::new
         );
+    }
+
+    /** 생성 시점이 다른 IDENTITY·UUID 모두 검증된 ID 필드에 값을 기록한다. */
+    private void writeId(EntityMetadata metadata, Object entity, Object id) throws SQLException {
+        try {
+            metadata.getIdField().set(entity, id);
+        } catch (IllegalAccessException | IllegalArgumentException e) {
+            throw new SQLException("생성 ID를 엔티티에 반영할 수 없습니다.", e);
+        }
     }
 
     /** 메타데이터에서 접근을 허용한 필드의 실제 값을 읽는다. */
