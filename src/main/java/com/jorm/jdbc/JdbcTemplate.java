@@ -26,6 +26,11 @@ public class JdbcTemplate {
 		this.transactions = java.util.Objects.requireNonNull(transactions);
 	}
 
+	/** 세션을 SQL 실행과 동일한 트랜잭션 관리자에 연결한다. */
+	public TransactionManager getTransactionManager() {
+		return transactions;
+	}
+
 	/**
 	 * SQL을 실행하고 조회 결과의 첫 번째 행을 객체로 변환하여 반환한다.
 	 *

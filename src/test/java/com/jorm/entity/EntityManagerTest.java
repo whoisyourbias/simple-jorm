@@ -111,10 +111,10 @@ class EntityManagerTest {
                 new StoredUser(2L, "Bob", "bob@example.com")), storedUsers());
     }
 
-    /** 두 번째 삽입 실패 시 첫 삽입도 기존 트랜잭션에 포함되어 롤백되는지 확인한다. */
+    /** 같은 ID의 관리 객체 충돌로 두 번째 저장이 거부되면 첫 삽입도 롤백되어야 한다. */
     @Test
     void participatesInTransactionAndRollsBackEarlierInsert() throws SQLException {
-        assertThrows(SQLException.class, () -> transactions.execute(() -> {
+        assertThrows(IllegalArgumentException.class, () -> transactions.execute(() -> {
             entities.persist(new User(1L, "Alice", "alice@example.com"));
             entities.persist(new User(1L, "Bob", "bob@example.com"));
             return null;

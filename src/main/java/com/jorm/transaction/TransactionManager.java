@@ -3,6 +3,9 @@ package com.jorm.transaction;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Objects;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Supplier;
 import javax.sql.DataSource;
 
 /** 같은 스레드의 JDBC 작업을 하나의 트랜잭션으로 묶는다. JdbcTemplate과 이 인스턴스를 공유해야 한다. */
@@ -18,6 +21,8 @@ public final class TransactionManager {
         private final Connection connection;
         // null이 아니면 rollbackOnly다. 바깥에서 예외를 잡더라도 이 표시는 유지된다.
         private Throwable rollbackCause;
+        private boolean completing;
+        private final Map<Object, TransactionResource> resources = new LinkedHashMap<>();
 
         /** 가장 바깥 호출이 확보한 연결을 모든 참여자에게 공유한다. */
         private TransactionState(Connection connection) {
@@ -29,6 +34,40 @@ public final class TransactionManager {
     public TransactionManager(DataSource dataSource) {
         // 필수 의존성이 null인지 검사하고 필요한 경우 필드에 보관한다.
         this.dataSource = Objects.requireNonNull(dataSource);
+    }
+
+    /** 같은 트랜잭션의 자원을 재사용한다. 트랜잭션 밖에서는 생성하지 않는다. */
+    @SuppressWarnings("unchecked")
+    public <R extends TransactionResource> R getOrCreateResource(Object key, Supplier<R> factory) {
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(factory);
+        TransactionState state = activeState();
+        if (state == null) {
+            return null;
+        }
+        TransactionResource resource = state.resources.get(key);
+        if (resource == null) {
+            resource = Objects.requireNonNull(factory.get());
+            state.resources.put(key, resource);
+        }
+        return (R) resource;
+    }
+
+    /** 내부에서 잡은 SQL 실패도 가장 바깥 경계에서 전체 롤백하게 한다. */
+    public void markRollbackOnly(Throwable cause) {
+        Objects.requireNonNull(cause);
+        TransactionState state = activeState();
+        if (state != null && state.rollbackCause == null) {
+            state.rollbackCause = cause;
+        }
+    }
+
+    private TransactionState activeState() {
+        TransactionState state = current.get();
+        if (state != null && state.completing) {
+            throw new IllegalStateException("종료 중인 트랜잭션을 다시 사용할 수 없습니다.");
+        }
+        return state;
     }
 
     @FunctionalInterface
@@ -46,7 +85,7 @@ public final class TransactionManager {
     /** 활성 연결을 빌려 쓰거나 임시 연결을 열어 작업한다. 임시 연결만 이 메서드가 닫는다. */
     public <T> T withConnection(ConnectionCallback<T> callback) throws SQLException {
         // 이 관리자에서 현재 스레드에 묶인 트랜잭션 연결을 찾는다.
-        TransactionState active = current.get();
+        TransactionState active = activeState();
         // 활성 트랜잭션 연결이 있는지 확인한다.
         if (active != null) {
             // 빌려 쓰는 연결로 실행한다. 이 메서드는 공유 연결을 닫지 않는다.
@@ -64,7 +103,7 @@ public final class TransactionManager {
         // 필수 의존성이 null인지 검사하고 필요한 경우 필드에 보관한다.
         Objects.requireNonNull(callback);
         // 이미 트랜잭션이 있으면 새 연결을 만들지 않고 기존 상태에 참여한다.
-        TransactionState active = current.get();
+        TransactionState active = activeState();
         if (active != null) {
             return participate(active, callback);
         }
@@ -90,6 +129,7 @@ public final class TransactionManager {
                     throw new UnexpectedRollbackException(state.rollbackCause);
                 }
                 // 지금까지 실행한 변경을 확정한다.
+                state.completing = true;
                 connection.commit();
                 // 커밋이 완료된 업무 콜백의 반환값을 전달한다.
                 return result;
@@ -97,6 +137,7 @@ public final class TransactionManager {
             } catch (SQLException | RuntimeException | Error e) {
                 // 정리 실패보다 우선 전달할 원래 실패를 기억한다.
                 failure = e;
+                state.completing = true;
                 try {
                     // 커밋되지 않은 변경을 모두 취소한다.
                     connection.rollback();
@@ -111,6 +152,8 @@ public final class TransactionManager {
                 throw e;
                 // 성공·실패와 관계없이 연결 상태와 스레드 자원을 정리한다.
             } finally {
+                state.completing = true;
+                Throwable completionFailure = completeResources(state, failure);
                 // 재사용되는 스레드에 이전 요청의 연결이 남지 않도록 제거한다.
                 current.remove();
                 try {
@@ -122,16 +165,42 @@ public final class TransactionManager {
                     // 자동 커밋 설정 복원 중 실패를 처리한다.
                 } catch (SQLException resetFailure) {
                     // 이미 전달할 원래 실패가 있는지 확인한다.
-                    if (failure != null) {
+                    if (completionFailure != null) {
                         // 설정 복원 실패를 원래 실패에 부가 정보로 보존한다.
-                        failure.addSuppressed(resetFailure);
+                        completionFailure.addSuppressed(resetFailure);
                     } else {
                         // 원래 실패를 호출자에게 전달한다. 트랜잭션 안이면 롤백 처리로 이어진다.
-                        throw resetFailure;
+                        completionFailure = resetFailure;
                     }
+                }
+                if (failure == null && completionFailure != null) {
+                    if (completionFailure instanceof SQLException sql) {
+                        throw sql;
+                    }
+                    if (completionFailure instanceof RuntimeException runtime) {
+                        throw runtime;
+                    }
+                    throw (Error) completionFailure;
                 }
             }
         }
+    }
+
+    /** 한 자원의 정리 실패가 나머지 자원의 종료를 막지 않게 한다. */
+    private Throwable completeResources(TransactionState state, Throwable failure) {
+        for (TransactionResource resource : state.resources.values()) {
+            try {
+                resource.afterCompletion();
+            } catch (RuntimeException | Error cleanupFailure) {
+                if (failure == null) {
+                    failure = cleanupFailure;
+                } else if (failure != cleanupFailure) {
+                    failure.addSuppressed(cleanupFailure);
+                }
+            }
+        }
+        state.resources.clear();
+        return failure;
     }
 
     /** 참여자는 커밋·롤백·연결 종료를 하지 않고 실패 시 rollbackOnly 표시만 남긴다. */

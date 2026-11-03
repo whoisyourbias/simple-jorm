@@ -2,6 +2,8 @@
 
 기준일: 2026-11-02
 
+이 문서는 Stage 4 당시의 SQL 조회·객체 생성 과정을 설명한다. 현재 Stage 5에서는 트랜잭션별 관리 객체 재사용을 추가했다. 최신 호출 흐름과 제약은 [영속성 컨텍스트 구현](../05-persistence-context/02-implementation-checkpoints.md)을 참고한다.
+
 ```java
 User user = entityManager.find(User.class, 1L);
 ```

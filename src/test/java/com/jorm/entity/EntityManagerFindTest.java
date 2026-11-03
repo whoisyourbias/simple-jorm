@@ -201,4 +201,18 @@ class EntityManagerFindTest {
         })));
         assertNull(entities.find(User.class, 3L));
     }
+
+    /*** 영속성 컨텍스트 **/
+    /** 같은 트랜잭션에서 같은 엔티티를 조회하면 같은 객체를 반환해야한다.**/
+    @Test
+    void returnsSameInstanceWithinTransaction() throws SQLException {
+        transactions.execute(() -> {
+            User first = entities.find(User.class, 1L);
+            User second = entities.find(User.class, 1L);
+
+            // 같은 행을 표현하는 관리 객체는 하나여야 한다.
+            assertSame(first, second);
+            return null;
+        });
+    }
 }

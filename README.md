@@ -13,7 +13,7 @@ Spring Boot 애플리케이션이나 JPA 구현체가 아니다. 서버 실행 �
 
 ## 현재 지원 범위
 
-기준: 2026-11-03. 엔티티 CRUD와 IDENTITY·UUID 생성 ID 반영까지 구현했다.
+기준: 2026-11-03. 엔티티 CRUD·생성 ID와 트랜잭션별 영속성 컨텍스트의 객체 동일성을 구현했다.
 
 | 계층 | 지원 기능 | 주요 제약 |
 |---|---|---|
@@ -21,18 +21,19 @@ Spring Boot 애플리케이션이나 JPA 구현체가 아니다. 서버 실행 �
 | Mapper | `@Select`, `@Insert`, `@Update`, `@Delete`, JDK 프록시 | 조회는 매핑 가능한 객체 또는 `List<T>`, 변경은 `int` 반환. default 메서드 실행 미지원 |
 | 트랜잭션 | 같은 스레드·관리자의 Connection 공유, commit·rollback, REQUIRED 참여, rollbackOnly, Service 프록시 | 자기 호출은 프록시를 통과하지 않음. 다른 관리자·스레드와 트랜잭션 공유 안 됨 |
 | 엔티티 | `@Table`, `@Id`, `@Column`, 클래스별 메타데이터 캐시, `persist`, `find`, `update`, `remove` | 직접 지정 또는 IDENTITY·UUID 단일 ID 사용. `persist`는 즉시 INSERT하고 변경 행 수 반환 |
+| 영속성 컨텍스트 | 트랜잭션별 세션, 관리 객체 동일성, REQUIRED 재사용, 종료 시 정리 | Long·Integer·String·UUID와 long·int ID 캐싱. 명시적 수정·삭제 유지 |
 
 아직 구현하지 않은 기능:
 
 - SEQUENCE·TABLE·AUTO ID 생성 전략.
-- 영속성 컨텍스트, 1차 캐시, 객체 동일성, 변경 감지, flush.
+- 스냅샷, 자동 변경 감지, flush, 쓰기 지연.
 - 관계 매핑, 복합 ID, 상속 필드 매핑, 별도 값 타입 변환.
 
-`find`는 매번 SELECT하고 새 객체를 만든다. 조회 타입에는 접근 가능한 기본 생성자가 필요하다. `persist`에는 기본 생성자가 필요 없다. 같은 이름의 JPA API와 동작이 같다고 가정하지 않는다.
+`find`는 같은 관리자·트랜잭션 안에서 관리 객체를 재사용한다. 트랜잭션 밖이나 캐싱 대상 외의 ID 타입은 매번 SELECT하고 새 객체를 만든다. 조회 타입에는 접근 가능한 기본 생성자가 필요하다. `persist`에는 기본 생성자가 필요 없다. 같은 이름의 JPA API와 동작이 같다고 가정하지 않는다.
 
 엔티티 update·remove는 ID 조건으로 즉시 SQL을 실행하고 변경 행 수를 반환한다. 대상이 없으면 0이며, null 객체·null ID와 ID 전용 타입의 update는 거부한다. [UPDATE·DELETE 사용법](doc/04-entity-crud/05-update-and-remove.md)을 참고한다.
 
-다음 학습 순서는 영속성 컨텍스트의 객체 동일성·변경 감지·flush다. 기능 변경은 요청 범위에 맞춰 진행한다.
+다음 학습 순서는 스냅샷·변경 감지·flush다. [개념과 생명주기](doc/05-persistence-context/01-concepts-and-lifecycle.md), [현재 구현과 검증 항목](doc/05-persistence-context/02-implementation-checkpoints.md)을 먼저 읽는다. 현재 트랜잭션에 같은 ID의 관리 객체가 있으면 별도 객체의 persist·update를 거부한다. 직접 JDBC·Mapper 변경은 관리 객체를 자동 갱신하지 않는다.
 
 ## 환경과 검증 명령
 

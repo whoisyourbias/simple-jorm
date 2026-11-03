@@ -1,6 +1,6 @@
 # simple-jorm 학습 문서
 
-학습 순서대로 번호를 붙였다. 현재는 **04 엔티티 CRUD와 IDENTITY·UUID 생성 ID 구현과 테스트까지 완료**했다. 다음은 영속성 컨텍스트의 객체 동일성·변경 감지·flush다.
+학습 순서대로 번호를 붙였다. 현재는 **05 영속성 컨텍스트의 객체 동일성과 세션 수명 관리까지 구현**했다. 다음은 스냅샷·변경 감지·flush다.
 
 ## 폴더 구조
 
@@ -17,12 +17,15 @@ doc/
 │  └─ 02-tests-and-next-steps.md
 ├─ 03-transaction/                # Connection 공유·Service 프록시·REQUIRED
 │  └─ 01-connection-and-transaction.md
-├─ 04-entity-crud/                # 현재: 메타데이터·INSERT·ID 조회
+├─ 04-entity-crud/                # 메타데이터·CRUD·생성 ID
 │  ├─ 01-metadata-and-insert.md
 │  ├─ 02-find-by-id.md
 │  ├─ 03-identity-generated-id.md
 │  ├─ 04-uuid-generated-id.md
 │  └─ 05-update-and-remove.md
+├─ 05-persistence-context/        # 객체 동일성·세션 수명, 이후 변경 감지
+│  ├─ 01-concepts-and-lifecycle.md
+│  └─ 02-implementation-checkpoints.md
 ├─ reference/                     # 기술·구현 상세 자료
 │  ├─ 01-java-orm-ecosystem.md
 │  ├─ 02-implementation-status.md
@@ -47,6 +50,7 @@ doc/
 | 02 | [JVM부터 프록시 호출까지](02-mapper/01-proxy-execution.md), [테스트와 다음 작업](02-mapper/02-tests-and-next-steps.md) | 기본 CRUD 완료 |
 | 03 | [Connection 공유와 트랜잭션](03-transaction/01-connection-and-transaction.md) | Service 프록시·REQUIRED 완료 |
 | 04 | [엔티티 매핑과 INSERT](04-entity-crud/01-metadata-and-insert.md), [ID 조회](04-entity-crud/02-find-by-id.md), [UPDATE·DELETE](04-entity-crud/05-update-and-remove.md) | 기본 CRUD·IDENTITY·UUID 완료 |
+| 05 | [영속성 컨텍스트와 생명주기](05-persistence-context/01-concepts-and-lifecycle.md), [현재 구현과 검증 항목](05-persistence-context/02-implementation-checkpoints.md) | 객체 동일성·세션 수명 완료, 변경 감지·flush 예정 |
 | 실험 | [실험 목록과 재현 안내](lab/README.md) | 학습 순서와 별도로 관리 |
 
 ## 단계별 실제 기술과의 대응
@@ -56,7 +60,7 @@ Spring JDBC식 실행 → MyBatis식 SQL Mapper → Spring식 트랜잭션 → H
 ## 번호와 관리 규칙
 
 - 학습 폴더는 `00`, `01`, `02`처럼 단계 순서로 번호를 붙인다. 파일 앞 번호는 해당 폴더 안에서 읽는 순서다.
-- 트랜잭션은 `03-transaction`, 엔티티 CRUD는 `04-entity-crud`에서 관리한다. 영속성 컨텍스트를 시작하면 `05-persistence-context`를 만든다. 아직 구현하지 않은 단계의 빈 폴더는 만들지 않는다.
+- 트랜잭션은 `03-transaction`, 엔티티 CRUD는 `04-entity-crud`에서 관리한다. 영속성 컨텍스트의 개념과 구현 준비는 `05-persistence-context`에서 관리한다. 아직 문서나 코드가 없는 단계의 빈 폴더는 만들지 않는다.
 - `lab`의 실험 계획·보고서는 번호로 짝을 구분한다. 실행 스크립트와 원시 결과 이름은 재현 경로를 유지한다.
 - 단계 완료 여부는 `00-overview/01-progress.md`에 갱신한다. 실험 기록은 `lab`에 둔다.
 
