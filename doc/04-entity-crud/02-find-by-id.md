@@ -32,11 +32,11 @@ persist는 이미 존재하는 객체를 읽으므로 기본 생성자가 필요
 - 같은 관리자의 트랜잭션 안에서 persist한 미커밋 행을 find할 수 있다. 롤백 후에는 해당 행이 없다.
 - 클래스 구조만 캐시한다. 연속 두 번 조회해도 별도 객체이며 최신 DB 값을 읽는다.
 
-[EntityManagerFindTest](../../src/test/java/com/jorm/entity/EntityManagerFindTest.java)의 12개 테스트로 위 동작을 검증한다. 기존 INSERT 테스트를 포함한 전체 테스트는 93개다.
+[EntityManagerFindTest](../../src/test/java/com/jorm/entity/EntityManagerFindTest.java)의 12개 테스트로 위 동작을 검증한다. find 추가 당시 전체 테스트는 93개였으며, 이후 검증 결과는 [진행 상황](../00-overview/01-progress.md)을 참고한다.
 
 ```powershell
 .\gradlew.bat test --tests com.jorm.entity.EntityManagerFindTest
 .\gradlew.bat test
 ```
 
-코드: [EntityManager.find](../../src/main/java/com/jorm/entity/EntityManager.java). 후속 구현은 [생성 ID 반영](03-generated-id.md)이며, 다음은 엔티티 UPDATE·DELETE다.
+코드: [EntityManager.find](../../src/main/java/com/jorm/entity/EntityManager.java). 이후 [IDENTITY 생성 ID](03-identity-generated-id.md)를 추가했다. 다음은 엔티티 UPDATE·DELETE다.

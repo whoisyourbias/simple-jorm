@@ -29,8 +29,8 @@
 - TransactionManager는 스레드별 연결과 rollbackOnly 원인을 관리한다. REQUIRED 참여자는 기존 연결을 사용하며 바깥 호출이 commit·rollback과 연결 정리를 담당한다.
 - Service 프록시는 구현 메서드의 @Transactional을 검사한다. 자기 호출, 두 Service 간 참여, 예외 전파·삼킴 이후 전체 롤백을 테스트했다.
 - EntityMetadata는 @Table·@Id·@Column, 단일 ID, 컬럼-필드 대응을 분석한다. static·synthetic 필드는 제외하고 final 필드·잘못된 선언은 거부한다.
-- EntityManager는 클래스별 메타데이터를 캐시하고 persist에서 INSERT를 즉시 실행한다. 일반 ID는 직접 지정하고 @GeneratedValue ID는 INSERT에서 제외한 뒤 DB identity 키를 Long·Integer 필드에 반영한다. find는 메타데이터로 SELECT를 만들고 기본 생성자로 새 객체를 생성한다. 엔티티 UPDATE·DELETE·영속성 컨텍스트는 없다.
-- 생성 ID 테스트 14개를 추가해 엔티티 테스트 40개를 포함한 전체 107개가 통과했다. [생성 ID 지원 범위와 실패·롤백 동작](../04-entity-crud/03-generated-id.md).
+- EntityManager는 클래스별 메타데이터를 캐시하고 persist에서 INSERT를 즉시 실행한다. 직접 지정 ID는 포함하고, IDENTITY 생성 ID는 제외한 뒤 같은 연결에서 키를 회수해 객체에 반영한다. find는 메타데이터로 SELECT를 만들고 기본 생성자로 새 객체를 생성한다. 생성 ID는 Long·Integer의 IDENTITY와 UUID·String의 UUID 전략을 지원한다. UUID는 INSERT 전에 생성해 ID 컬럼에 바인딩한다. 엔티티 UPDATE·DELETE·영속성 컨텍스트는 없다.
+- IDENTITY 테스트 10개와 JDBC 생성 키 오류 테스트 3개를 추가했다. UUID 테스트 11개를 추가해 엔티티 테스트 61개를 포함한 전체 131개가 `.\gradlew.bat test --rerun-tasks`로 통과했다.
 
 ## 실제 기술과의 대응
 

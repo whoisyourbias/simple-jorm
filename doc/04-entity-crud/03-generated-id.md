@@ -36,11 +36,11 @@ int affected = entityManager.persist(user); // 1
 
 자동 커밋 상태에서는 INSERT 성공 후 키 처리 실패가 발생해도 행이 이미 저장됐을 수 있다. 키 처리까지 실패 시 롤백하려면 같은 TransactionManager의 execute 안에서 호출하고 예외를 전파해야 한다.
 
-ID 컬럼의 DB 자동 생성 설정은 호출자가 준비한다. DB와 JDBC 드라이버가 지정 컬럼 생성 키 반환 및 사용한 INSERT 문법을 지원해야 한다. 이번 검증은 H2 기준이며 MySQL 등 다른 DB 호환성을 검증하지 않았다. 시퀀스·UUID·복합 ID와 Mapper 생성 키 반환은 지원하지 않는다.
+ID 컬럼의 DB 자동 생성 설정은 호출자가 준비한다. DB와 JDBC 드라이버가 지정 컬럼 생성 키 반환 및 사용한 INSERT 문법을 지원해야 한다. 이번 검증은 H2 기준이며 MySQL 등 다른 DB 호환성을 검증하지 않았다. 시퀀스·복합 ID와 Mapper 생성 키 반환은 지원하지 않는다. 원격 변경 병합으로 추가된 [UUID 전략](04-uuid-generated-id.md)은 별도 문서에서 다룬다.
 
 ## 검증
 
-EntityManagerGeneratedIdTest의 실제 H2 테스트 14개로 Long·Integer 생성 키, 컬럼명 재정의, 반복 저장, ID만 있는 객체, 잘못된 설정, SQL 실패, 커밋·롤백, Integer 범위 초과를 검증한다. 전체 107개 테스트가 통과했다.
+EntityManagerGeneratedIdTest의 테스트 14개로 Long·Integer 생성 키, 컬럼명 재정의, 반복 저장, ID만 있는 객체, 잘못된 설정, SQL 실패, 커밋·롤백, Integer 범위 초과를 검증한다. 생성 키 누락·null은 JDBC 응답만 대체하고 실제 H2 INSERT·롤백을 검증한다. 원격 IDENTITY·UUID 변경 병합 후 전체 131개 테스트가 통과했다.
 
 ```powershell
 .\gradlew.bat test --tests com.jorm.entity.EntityManagerGeneratedIdTest
