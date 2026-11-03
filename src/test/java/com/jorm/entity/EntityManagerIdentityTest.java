@@ -71,6 +71,7 @@ class EntityManagerIdentityTest {
         if (keepAlive != null) keepAlive.close();
     }
 
+    /** 별칭 ID 컬럼의 DB 생성 키를 객체에 반영하고 직접 SQL과 find로 저장 값을 확인할 수 있는지 검증한다. */
     @Test
     void assignsDatabaseKeyAndFindsInsertedEntity() throws SQLException {
         User user = new User();
@@ -82,6 +83,7 @@ class EntityManagerIdentityTest {
         assertEquals(user.name, entities.find(User.class, user.id).name);
     }
 
+    /** 여러 객체를 저장할 때 서로 다른 생성 ID를 반영하고 각 ID로 올바른 객체를 조회하는지 검증한다. */
     @Test
     void assignsDifferentKeysToEachEntity() throws SQLException {
         User first = new User(); first.name = "Alice";
@@ -94,6 +96,7 @@ class EntityManagerIdentityTest {
         assertEquals("Bob", entities.find(User.class, second.id).name);
     }
 
+    /** 생성 ID 필드만 있는 엔티티도 저장하고 반환된 ID로 조회할 수 있는지 검증한다. */
     @Test
     void insertsEntityWithOnlyGeneratedId() throws SQLException {
         OnlyId entity = new OnlyId();
@@ -102,6 +105,7 @@ class EntityManagerIdentityTest {
         assertNotNull(entities.find(OnlyId.class, entity.id));
     }
 
+    /** DB의 INTEGER 생성 키를 Integer 필드에 반영하고 조회 시에도 같은 ID를 복원하는지 검증한다. */
     @Test
     void supportsIntegerIdentity() throws SQLException {
         IntegerId entity = new IntegerId();
@@ -110,6 +114,7 @@ class EntityManagerIdentityTest {
         assertEquals(entity.id, entities.find(IntegerId.class, entity.id).id);
     }
 
+    /** 값이 이미 지정된 생성 ID는 저장 전에 거부하고 원래 ID와 빈 테이블을 유지하는지 검증한다. */
     @Test
     void rejectsAlreadyAssignedGeneratedIdWithoutInserting() throws SQLException {
         User user = new User(); user.id = 99L; user.name = "Alice";
@@ -118,6 +123,7 @@ class EntityManagerIdentityTest {
         assertEquals(0L, countUsers());
     }
 
+    /** NOT NULL 제약 위반으로 INSERT가 실패하면 객체에 생성 ID를 기록하지 않고 행도 저장하지 않는지 검증한다. */
     @Test
     void doesNotSetIdWhenInsertFails() throws SQLException {
         User user = new User(); // NOT NULL 위반
@@ -126,6 +132,7 @@ class EntityManagerIdentityTest {
         assertEquals(0L, countUsers());
     }
 
+    /** 업무 예외를 원본 그대로 전파하며 저장한 행은 롤백하고 객체에 반영된 ID는 유지하는지 검증한다. */
     @Test
     void rollsBackRowButKeepsAssignedObjectId() throws SQLException {
         User user = new User(); user.name = "Alice";
@@ -140,16 +147,19 @@ class EntityManagerIdentityTest {
         assertEquals(0L, countUsers());
     }
 
+    /** @Id가 아닌 필드에 @GeneratedValue를 붙이면 메타데이터 분석에서 거부하는지 검증한다. */
     @Test
     void rejectsGeneratedValueOnNonIdField() {
         assertThrows(IllegalArgumentException.class, () -> new EntityMetadata(NonIdGeneration.class));
     }
 
+    /** IDENTITY 생성 ID에 지원하지 않는 필드 타입을 선언하면 메타데이터 분석에서 거부하는지 검증한다. */
     @Test
     void rejectsUnsupportedGeneratedIdType() {
         assertThrows(IllegalArgumentException.class, () -> new EntityMetadata(StringId.class));
     }
 
+    /** 미저장 상태를 나타낼 null을 담을 수 없는 기본형 IDENTITY 필드를 거부하는지 검증한다. */
     @Test
     void rejectsPrimitiveGeneratedIdBecauseNullMarksUnsavedState() {
         assertThrows(IllegalArgumentException.class, () -> new EntityMetadata(PrimitiveId.class));

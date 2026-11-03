@@ -47,4 +47,4 @@ EntityManagerGeneratedIdTest의 테스트 14개로 Long·Integer 생성 키, 컬
 .\gradlew.bat test
 ```
 
-다음 작업은 엔티티 UPDATE·DELETE다.
+후속 구현은 [엔티티 UPDATE·DELETE](05-update-and-remove.md)다. 다음 작업은 영속성 컨텍스트다.

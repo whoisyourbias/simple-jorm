@@ -31,6 +31,7 @@ class JdbcTemplateGeneratedKeyTest {
         if (keepAlive != null) keepAlive.close();
     }
 
+    /** 생성 키가 null이면 SQLException을 전달하고 같은 트랜잭션의 INSERT를 롤백하는지 검증한다. */
     @Test
     void rejectsNullKeyAndRollsBackInsertedRow() throws SQLException {
         assertThrows(SQLException.class, () -> transactions.execute(() ->
@@ -38,6 +39,7 @@ class JdbcTemplateGeneratedKeyTest {
         assertEquals(0L, count());
     }
 
+    /** 삽입 행 수가 0이면 생성 키 INSERT를 실패로 처리하고 테이블을 비워 둔 채 유지하는지 검증한다. */
     @Test
     void rejectsInsertThatDidNotInsertAnyRow() throws SQLException {
         assertThrows(SQLException.class, () -> jdbc.insertReturningKey(
@@ -45,6 +47,7 @@ class JdbcTemplateGeneratedKeyTest {
         assertEquals(0L, count());
     }
 
+    /** Integer 범위를 넘는 생성 키를 잘라 반환하지 않고 SQLException과 함께 INSERT를 롤백하는지 검증한다. */
     @Test
     void rejectsOutOfRangeKeyAndRollsBackInsteadOfTruncating() throws SQLException {
         assertThrows(SQLException.class, () -> transactions.execute(() ->

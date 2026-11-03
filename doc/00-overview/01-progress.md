@@ -2,7 +2,7 @@
 
 기준일: 2026-11-03
 
-**현재: 엔티티 메타데이터, ID 직접 지정 INSERT, ID 기반 find, IDENTITY·UUID 생성 ID 반영 구현 완료. 다음: 엔티티 UPDATE·DELETE.**
+**현재: 엔티티 INSERT·find·UPDATE·DELETE와 IDENTITY·UUID 생성 ID 반영 구현 완료. 다음: 영속성 컨텍스트의 객체 동일성.**
 
 ## 단계별 현황
 
@@ -14,7 +14,7 @@
 | 03 트랜잭션 | Connection 공유, commit·rollback, Service 프록시, REQUIRED·rollbackOnly | 완료 |
 | 04 엔티티 CRUD | @Table·@Id·@Column, 메타데이터 캐시, INSERT·persist, ID 조회·find | 완료 |
 | 04 엔티티 CRUD | IDENTITY 키 회수·UUID 생성 및 객체 반영 | 완료 |
-| 04 엔티티 CRUD | 엔티티 UPDATE·DELETE | 미구현 |
+| 04 엔티티 CRUD | 엔티티 UPDATE·DELETE | 완료 |
 | 05 영속성 컨텍스트 | 객체 동일성, 변경 감지 | 미구현 |
 
 ## 현재 동작과 검증
@@ -23,12 +23,13 @@
 - Mapper: @Select로 단건·목록 조회, @Insert·@Update·@Delete로 변경 후 영향받은 행 수 반환.
 - 트랜잭션: 같은 스레드·관리자의 연결 공유, Service 프록시, REQUIRED 참여와 rollbackOnly 지원.
 - 엔티티: 직접 정의한 어노테이션을 분석해 INSERT를 즉시 실행한다. ID는 직접 지정하거나 IDENTITY·UUID로 생성하며 변경 행 수를 반환한다. find는 ID 조건으로 조회해 새 객체에 필드를 채우고, 결과가 없으면 null을 반환한다.
-- 검증: 엔티티 테스트 61개를 포함한 전체 131개 테스트 통과 (`.\gradlew.bat test --rerun-tasks`).
+- 엔티티 변경·삭제: update는 ID 외 모든 필드를, remove는 ID 조건의 행을 즉시 변경·삭제한다. 변경 행 수를 반환하며 대상이 없으면 0이다. null 객체·null ID와 ID 전용 타입의 update는 거부한다.
+- 검증: 엔티티 테스트 78개를 포함한 전체 148개 테스트 통과 (`.\gradlew.bat test`).
 - 제약: Mapper의 생성 ID 반환·default 메서드 실행은 미지원. 엔티티 생성 ID는 IDENTITY·UUID 지원. 변경 메서드는 int만 지원.
 
 ## 다음 작업
 
-1. 엔티티 UPDATE·DELETE 확장.
+1. 영속성 컨텍스트의 객체 동일성, 이후 변경 감지·flush 구현.
 
 ## 구현 단계가 대응하는 기술
 
@@ -52,3 +53,4 @@
 
 - [IDENTITY 생성 ID](../04-entity-crud/03-identity-generated-id.md)
 - [UUID 생성 ID](../04-entity-crud/04-uuid-generated-id.md)
+- [엔티티 UPDATE·DELETE](../04-entity-crud/05-update-and-remove.md)
