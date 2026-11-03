@@ -1,5 +1,11 @@
 # simple-jorm 학습 문서
 
+**[단계별 학습 웹페이지 · JDK 프록시 애니메이션](index.html)** — 브라우저에서 직접 열 수 있는 독립 HTML. 각 단계의 문제·해결·내부 구조와 실제 Java 기술의 구현 차이를 정리했다.
+
+페이지 상태 전환 검증: 저장소 루트에서 `node --test doc/tests/learning-page.test.cjs` (Node.js 기본 테스트 실행기 사용).
+
+브라우저 검증: Node.js 22 이상과 설치된 Chrome으로 `node doc/tests/browser-smoke.cjs`. Windows 기본 설치 경로 외에는 `CHROME_PATH`로 실행 파일을 지정한다. 결과와 스크린샷은 `build/page-qa/`에 생성된다.
+
 학습 순서대로 번호를 붙였다. 현재는 **04 엔티티 CRUD와 IDENTITY·UUID 생성 ID 구현과 테스트까지 완료**했다. 다음은 영속성 컨텍스트의 객체 동일성·변경 감지·flush다.
 
 ## 폴더 구조
