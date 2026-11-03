@@ -39,4 +39,4 @@ persist는 이미 존재하는 객체를 읽으므로 기본 생성자가 필요
 .\gradlew.bat test
 ```
 
-코드: [EntityManager.find](../../src/main/java/com/jorm/entity/EntityManager.java). 다음은 생성 ID 반영과 엔티티 UPDATE·DELETE다.
+코드: [EntityManager.find](../../src/main/java/com/jorm/entity/EntityManager.java). 후속 구현은 [생성 ID 반영](03-generated-id.md)이며, 다음은 엔티티 UPDATE·DELETE다.

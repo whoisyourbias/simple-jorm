@@ -34,32 +34,66 @@ public class EntityManager {
         // 실제 객체의 클래스에 해당하는 매핑 정보를 가져온다.
         EntityMetadata metadata = getMetadata(entity.getClass());
 
-        // 현재 단계에서는 ID를 직접 지정하도록 한다.
-        if (readField(metadata.getIdField(), entity) == null) {
+        Object id = readField(metadata.getIdField(), entity);
+        if (metadata.isGeneratedId() && id != null) {
+            throw new IllegalArgumentException("생성 ID는 지정하지 않아야 합니다.");
+        }
+        if (!metadata.isGeneratedId() && id == null) {
             throw new IllegalArgumentException("ID를 먼저 지정해야 합니다.");
         }
 
+        // 생성 ID는 DB 기본값을 사용하도록 컬럼과 바인딩 값 양쪽에서 제외한다.
+        List<Map.Entry<String, Field>> insertColumns = metadata.getColumns().entrySet().stream()
+                .filter(entry -> !metadata.isGeneratedId()
+                        || !entry.getValue().equals(metadata.getIdField()))
+                .toList();
+
         // LinkedHashMap의 순서대로 컬럼 이름을 연결한다.
         String columnNames = String.join(
-                ", ", metadata.getColumns().keySet()
+                ", ", insertColumns.stream().map(Map.Entry::getKey).toList()
         );
 
         // 컬럼 개수만큼 물음표를 만든다.
         String placeholders = String.join(
                 ", ",
-                Collections.nCopies(metadata.getColumns().size(), "?")
+                Collections.nCopies(insertColumns.size(), "?")
         );
 
         // 예: INSERT INTO users (id, user_name, email) VALUES (?, ?, ?)
         String sql = "INSERT INTO " + metadata.getTableName()
-                + " (" + columnNames + ")"
-                + " VALUES (" + placeholders + ")";
+                + (insertColumns.isEmpty() ? " DEFAULT VALUES"
+                : " (" + columnNames + ") VALUES (" + placeholders + ")");
 
         // SQL 컬럼과 같은 순서로 객체에서 값을 읽는다.
         List<Object> values = new ArrayList<>();
 
-        for (Field field : metadata.getColumns().values()) {
-            values.add(readField(field, entity));
+        for (Map.Entry<String, Field> column : insertColumns) {
+            values.add(readField(column.getValue(), entity));
+        }
+
+        if (metadata.isGeneratedId()) {
+            String idColumn = metadata.getColumns().entrySet().stream()
+                    .filter(entry -> entry.getValue().equals(metadata.getIdField()))
+                    .map(Map.Entry::getKey).findFirst().orElseThrow();
+            return jdbcTemplate.updateWithGeneratedKey(sql, idColumn, (keys, row) -> {
+                long generated = keys.getLong(1);
+                if (keys.wasNull()) {
+                    throw new SQLException("생성 ID가 null입니다.");
+                }
+                try {
+                    // Integer 범위를 벗어난 키를 잘라서 저장하지 않는다.
+                    Object value;
+                    if (metadata.getIdField().getType() == Integer.class) {
+                        value = Math.toIntExact(generated);
+                    } else {
+                        value = generated;
+                    }
+                    metadata.getIdField().set(entity, value);
+                } catch (IllegalAccessException | IllegalArgumentException | ArithmeticException e) {
+                    throw new SQLException("생성 ID를 필드에 반영할 수 없습니다.", e);
+                }
+                return null;
+            }, values.toArray());
         }
 
         // 값은 SQL 문자열에 합치지 않고 파라미터로 바인딩한다.

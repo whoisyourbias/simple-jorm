@@ -1,6 +1,6 @@
 # 구현 단계와 실제 데이터 접근 기술의 대응
 
-기준일: 2026-11-02
+기준일: 2026-11-03
 
 simple-jorm은 JDBC 실행, SQL Mapper, 트랜잭션, 엔티티 매핑을 차례로 직접 만드는 학습 프로젝트다. 아래 대응은 **비슷한 역할을 배우고 있다는 뜻**이다. 해당 라이브러리의 전체 기능이나 표준 호환성을 구현했다는 뜻은 아니다.
 
@@ -15,7 +15,7 @@ simple-jorm은 JDBC 실행, SQL Mapper, 트랜잭션, 엔티티 매핑을 차례
 | 03 선언적 트랜잭션 | `@Transactional`, `TransactionProxyFactory`, `TransactionInvocationHandler` | Spring의 프록시 기반 선언적 트랜잭션 | 구현 메서드 검사·호출 위임·예외 전파 완료 |
 | 03 REQUIRED | `TransactionState`, `participate()`, `UnexpectedRollbackException` | Spring의 REQUIRED 참여·rollback-only 의미 | 기존 트랜잭션 참여, 바깥 종료, 실패를 잡아도 전체 롤백 완료 |
 | 04 엔티티 메타데이터 | `@Table`, `@Id`, `@Column`, `EntityMetadata` | Hibernate 등 JPA 구현체의 객체·테이블 매핑 분석 | 테이블명·단일 ID·컬럼 분석과 메타데이터 캐싱 완료 |
-| 04 엔티티 INSERT | `EntityManager.persist()` | JPA `EntityManager.persist()`의 저장 진입 형태와 ORM의 INSERT 생성 | ID 직접 지정, INSERT 즉시 실행, 변경 행 수 반환 완료 |
+| 04 엔티티 INSERT | `EntityManager.persist()` | JPA `EntityManager.persist()`의 저장 진입 형태와 ORM의 INSERT 생성 | ID 직접 지정·identity 생성 ID 반영, INSERT 즉시 실행, 변경 행 수 반환 완료 |
 | 04 엔티티 ID 조회 | `EntityManager.find()` | JPA EntityManager.find의 ID 조회 진입 형태 | SELECT·컬럼 매핑·새 객체 생성 완료. 영속성 컨텍스트는 없음 |
 | 04 엔티티 변경·삭제 | 향후 변경·삭제 API | ORM의 CRUD SQL 생성 | 미구현 |
 | 05 영속성 컨텍스트 | 향후 객체 동일성·스냅샷·변경 감지·flush | JPA의 영속성 컨텍스트, Hibernate의 엔티티 상태 관리 | 미구현 |
@@ -88,7 +88,7 @@ entityManager.persist(user);
 | 엔티티 선언 | `@Table`만 검사. `@Entity`는 없음 | JPA 엔티티 선언·매핑 규칙 적용 |
 | `persist()` 의미 | 즉시 INSERT, `int` 변경 행 수 반환 | 엔티티를 영속성 컨텍스트의 관리 상태로 만들며 반환 타입은 void |
 | INSERT 시점 | persist 호출 중 SQL 실행 | flush·식별자 전략 등 조건에 따라 SQL 실행 시점 결정 |
-| ID | 호출자가 직접 지정 | 직접 지정 또는 생성 전략 사용 가능 |
+| ID | 직접 지정 또는 @GeneratedValue identity(Long·Integer) | 직접 지정 또는 생성 전략 사용 가능 |
 | 저장 후 객체 변경 | 자동 UPDATE 없음 | 관리 상태 엔티티의 변경을 DB와 동기화하는 규칙 제공 |
 | 캐시 | 클래스별 구조 정보만 저장 | 영속성 컨텍스트에서 엔티티 인스턴스·생명주기 관리 |
 | 여러 스레드 사용 | 현재 공유 캐시·독립 객체의 동시 INSERT를 테스트함 | 실제 EntityManager·영속성 컨텍스트를 여러 스레드가 동시에 공유해서는 안 됨 |
@@ -99,7 +99,7 @@ JPA의 persist·flush·영속성 컨텍스트·스레드 사용 규칙은 [Jakar
 
 ## 아직 구현하지 않은 계층
 
-- 엔티티 기반 UPDATE·DELETE, 생성 ID 반영: 04 단계의 후속 작업이다.
+- 엔티티 기반 UPDATE·DELETE: 04 단계의 후속 작업이다. [생성 ID 반영](../04-entity-crud/03-generated-id.md)은 완료했다.
 - 영속성 컨텍스트·변경 감지·flush: 05 단계에서 JPA식 상태 관리의 의미를 학습한다.
 - Spring Data JPA식 Repository 자동 생성: 현재 EntityManager 위에 별도로 구성할 수 있는 계층이며 아직 구현하지 않았다.
 - jOOQ식 SQL DSL, Spring Data JDBC의 Aggregate 저장 모델, R2DBC 실행: 현재 구현 경로에 포함하지 않는다. 기술별 관계는 [생태계 상세 문서](01-java-orm-ecosystem.md)를 참고한다.

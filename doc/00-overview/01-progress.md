@@ -1,8 +1,8 @@
 # 00-01. 현재 진행 상황
 
-기준일: 2026-11-02
+기준일: 2026-11-03
 
-**현재: 엔티티 메타데이터, ID 직접 지정 INSERT와 ID 기반 find 구현 완료. 다음: 생성 ID 반영과 엔티티 UPDATE·DELETE.**
+**현재: 엔티티 메타데이터, INSERT·find·생성 ID 반영 구현 완료. 다음: 엔티티 UPDATE·DELETE.**
 
 ## 단계별 현황
 
@@ -13,7 +13,8 @@
 | 02 Mapper | 단건·목록 조회, INSERT·UPDATE·DELETE, 인자 전달 | 완료 |
 | 03 트랜잭션 | Connection 공유, commit·rollback, Service 프록시, REQUIRED·rollbackOnly | 완료 |
 | 04 엔티티 CRUD | @Table·@Id·@Column, 메타데이터 캐시, INSERT·persist, ID 조회·find | 완료 |
-| 04 엔티티 CRUD | 엔티티 UPDATE·DELETE, 생성 ID 반영 | 미구현 |
+| 04 엔티티 CRUD | @GeneratedValue identity 생성 ID 반영 | 완료 |
+| 04 엔티티 CRUD | 엔티티 UPDATE·DELETE | 미구현 |
 | 05 영속성 컨텍스트 | 객체 동일성, 변경 감지 | 미구현 |
 
 ## 현재 동작과 검증
@@ -21,13 +22,13 @@
 - JDBC: 단건·목록 조회와 데이터 변경 지원. 단건 조회는 결과가 없으면 null, 여러 행이면 첫 행 반환.
 - Mapper: @Select로 단건·목록 조회, @Insert·@Update·@Delete로 변경 후 영향받은 행 수 반환.
 - 트랜잭션: 같은 스레드·관리자의 연결 공유, Service 프록시, REQUIRED 참여와 rollbackOnly 지원.
-- 엔티티: 직접 정의한 어노테이션을 분석해 INSERT를 즉시 실행한다. ID는 직접 지정하며 변경 행 수를 반환한다. find는 ID 조건으로 조회해 새 객체에 필드를 채우고, 결과가 없으면 null을 반환한다.
-- 검증: 엔티티 테스트 26개를 포함한 전체 93개 테스트 통과.
-- 제약: 생성 ID 반환·default 메서드 실행은 미지원. 변경 메서드는 int만 지원.
+- 엔티티: 직접 정의한 어노테이션을 분석해 INSERT를 즉시 실행한다. ID는 직접 지정하거나 @GeneratedValue로 DB identity 키를 반영하며 변경 행 수를 반환한다. find는 ID 조건으로 조회해 새 객체에 필드를 채우고, 결과가 없으면 null을 반환한다.
+- 검증: 엔티티 테스트 40개를 포함한 전체 107개 테스트 통과.
+- 제약: Mapper 생성 ID 반환·default 메서드 실행은 미지원. 변경 메서드는 int만 지원. 엔티티 생성 ID는 Long·Integer만 지원.
 
 ## 다음 작업
 
-1. 생성 ID 반영과 엔티티 UPDATE·DELETE 확장.
+1. 엔티티 UPDATE·DELETE 확장.
 
 ## 구현 단계가 대응하는 기술
 
@@ -42,6 +43,7 @@
 - [01 JDBC 실행과 매핑](../01-jdbc/01-jdbc-and-row-mapping.md)
 - [02 Mapper 실행 흐름](../02-mapper/01-proxy-execution.md) · [테스트와 다음 작업](../02-mapper/02-tests-and-next-steps.md)
 - [04 엔티티 매핑과 INSERT](../04-entity-crud/01-metadata-and-insert.md) · [ID 조회](../04-entity-crud/02-find-by-id.md)
+- [04 생성 ID 반영](../04-entity-crud/03-generated-id.md)
 - [별도 성능 실험](../lab/README.md)
 
 ## 상세 기록

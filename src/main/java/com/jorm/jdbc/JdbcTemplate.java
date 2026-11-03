@@ -148,6 +148,30 @@ public class JdbcTemplate {
 	}
 
 	/**
+	 * 단일 INSERT를 실행하고 지정한 컬럼의 생성 키를 같은 연결에서 처리한다.
+	 * 키 처리 실패도 활성 트랜잭션의 호출자에게 전달한다. 자동 커밋에서는 이미 저장됐을 수 있다.
+	 */
+	public int updateWithGeneratedKey(String query, String keyColumn,
+			RowMapper<Void> keyMapper, Object... args) throws SQLException {
+		return transactions.withConnection(conn -> {
+			try (PreparedStatement stmt = conn.prepareStatement(query, new String[] {keyColumn})) {
+				bindParameters(stmt, args);
+				int affected = stmt.executeUpdate();
+				if (affected != 1) {
+					throw new SQLException("생성 ID INSERT는 정확히 한 행을 변경해야 합니다: " + affected);
+				}
+				try (ResultSet keys = stmt.getGeneratedKeys()) {
+					if (!keys.next()) {
+						throw new SQLException("INSERT의 생성 ID가 반환되지 않았습니다.");
+					}
+					keyMapper.prepare(keys).mapRow(keys, 0);
+				}
+				return affected;
+			}
+		});
+	}
+
+	/**
 	 * 파라미터를 SQL의 물음표(?) 순서대로 바인딩한다.
 	 *
 	 * @param stmt 파라미터를 설정할 PreparedStatement

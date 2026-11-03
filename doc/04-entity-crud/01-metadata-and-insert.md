@@ -1,6 +1,6 @@
 # 04-01. 엔티티 메타데이터와 INSERT 자동 생성
 
-기준일: 2026-11-02. 현재는 메타데이터 분석, ID 직접 지정 방식의 `persist()`, ID 조회 `find()`를 구현했다. 수정·삭제는 아직 없다.
+기준일: 2026-11-03. 메타데이터 분석, ID 직접 지정·생성 ID 방식의 `persist()`, ID 조회 `find()`를 구현했다. 이 문서는 직접 지정 ID 경로를 설명하며 [생성 ID](03-generated-id.md)는 별도 문서에서 다룬다. 수정·삭제는 아직 없다.
 
 ## 실제 기술과의 연결
 
@@ -18,7 +18,7 @@ persist(user)
   → 변경 행 수 반환
 ```
 
-예를 들어 `@Column("user_name")`이 붙은 `name` 필드는 `user_name` 컬럼에 저장한다. 표시가 없는 필드는 Java 필드명을 컬럼명으로 사용한다. ID도 INSERT 컬럼에 포함한다.
+예를 들어 `@Column("user_name")`이 붙은 `name` 필드는 `user_name` 컬럼에 저장한다. 표시가 없는 필드는 Java 필드명을 컬럼명으로 사용한다. 직접 지정 ID도 INSERT 컬럼에 포함한다. @GeneratedValue ID는 제외한다.
 
 ## 두 Map의 역할
 
@@ -35,10 +35,10 @@ persist(user)
 
 - `@Table`과 비어 있지 않은 테이블명이 필요하다. 별도의 `@Entity`는 없다.
 - 직접 선언된 인스턴스 필드만 분석하며 static·synthetic 필드는 제외한다.
-- ID 필드는 정확히 하나여야 하고 null ID는 저장 전에 거부한다. 자동 생성 ID는 지원하지 않는다.
+- ID 필드는 정확히 하나여야 한다. 일반 @Id는 null을 거부하며, @GeneratedValue ID는 null에서 DB identity 키를 반영한다.
 - 비어 있거나 중복된 컬럼명, final 인스턴스 필드를 거부한다.
 - 상속 필드, 관계 매핑, 복합 ID, SQL 방언별 식별자 인용·정규화는 지원하지 않는다.
-- persist는 전달된 객체에서 값을 읽기만 하므로 기본 생성자가 없어도 된다. find는 구체적인 클래스와 접근 가능한 기본 생성자가 필요하다.
+- persist는 전달된 객체를 사용하므로 기본 생성자가 없어도 된다. 생성 ID는 해당 객체에 기록한다. find는 구체적인 클래스와 접근 가능한 기본 생성자가 필요하다.
 - persist는 호출 중 INSERT를 실행한다. 같은 관리자의 활성 트랜잭션 안에서는 그 연결을 쓰고, 밖에서는 임시 연결의 자동 커밋으로 저장한다.
 - 여러 스레드 테스트는 독립 객체를 전달하는 현재 경로만 검증한다. 실제 JPA EntityManager의 동시 공유를 허용한다는 뜻은 아니다.
 
@@ -53,4 +53,4 @@ persist(user)
 .\gradlew.bat test
 ```
 
-`find(Class<T>, id)`는 [ID 조회와 객체 생성](02-find-by-id.md)에서 설명한다. 다음은 생성 ID 반영과 엔티티 UPDATE·DELETE다.
+`find(Class<T>, id)`는 [ID 조회와 객체 생성](02-find-by-id.md), 생성 ID는 [DB 생성 ID 반영](03-generated-id.md)에서 설명한다. 다음은 엔티티 UPDATE·DELETE다.

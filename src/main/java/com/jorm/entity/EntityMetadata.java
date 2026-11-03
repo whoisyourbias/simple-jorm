@@ -10,6 +10,7 @@ public class EntityMetadata {
 
     private final String tableName;
     private final Field idField;
+    private final boolean generatedId;
 
     // 키: DB 컬럼명, 값: 값을 읽거나 쓸 Java 필드
     private final Map<String, Field> columns;
@@ -31,6 +32,12 @@ public class EntityMetadata {
 
         // 해당 클래스에 직접 선언된 필드를 조사한다.
         for (Field field : entityType.getDeclaredFields()) {
+            // 생성 전략은 인스턴스의 ID 필드에서만 의미가 있다.
+            if (field.isAnnotationPresent(GeneratedValue.class)
+                    && (!field.isAnnotationPresent(Id.class)
+                    || Modifier.isStatic(field.getModifiers()) || field.isSynthetic())) {
+                throw new IllegalArgumentException("@GeneratedValue는 인스턴스 @Id 필드에만 지정합니다.");
+            }
             // 클래스 공용 필드와 컴파일러가 만든 필드는 제외한다.
             if (Modifier.isStatic(field.getModifiers()) || field.isSynthetic()) {
                 continue;
@@ -74,6 +81,11 @@ public class EntityMetadata {
         }
 
         this.idField = discoveredId;
+        this.generatedId = discoveredId.isAnnotationPresent(GeneratedValue.class);
+        if (generatedId && discoveredId.getType() != Long.class
+                && discoveredId.getType() != Integer.class) {
+            throw new IllegalArgumentException("생성 ID는 Long 또는 Integer 필드여야 합니다.");
+        }
 
         // 분석 이후 컬럼 구성이 바뀌지 않도록 변경을 막는다.
         this.columns = Collections.unmodifiableMap(discoveredColumns);
@@ -87,6 +99,11 @@ public class EntityMetadata {
     /** 식별자 값을 읽거나 저장할 필드를 반환한다. */
     public Field getIdField() {
         return idField;
+    }
+
+    /** DB identity 컬럼이 ID를 생성하는지 반환한다. */
+    public boolean isGeneratedId() {
+        return generatedId;
     }
 
     /** ID를 포함한 컬럼명과 Java 필드의 대응 관계를 반환한다. */
