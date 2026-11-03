@@ -47,4 +47,4 @@ INSERT 자체가 실패하면 ID는 null로 남는다. INSERT 성공 후 키 회
 
 [EntityManagerIdentityTest](../../src/test/java/com/jorm/entity/EntityManagerIdentityTest.java)는 생성 ID와 컬럼 별칭, 바인딩, 연속 저장, ID만 있는 엔티티, Integer, 기존 ID 거부, SQL 실패, 롤백과 잘못된 선언을 검증한다. [JdbcTemplateGeneratedKeyTest](../../src/test/java/com/jorm/jdbc/JdbcTemplateGeneratedKeyTest.java)는 null 키·0행 INSERT·범위 초과 변환의 오류 전달을 확인한다.
 
-다음 단계는 엔티티 UPDATE·DELETE다.
+후속 구현은 [엔티티 UPDATE·DELETE](05-update-and-remove.md)다. 다음 단계는 영속성 컨텍스트다.

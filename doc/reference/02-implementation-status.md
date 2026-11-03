@@ -29,8 +29,9 @@
 - TransactionManager는 스레드별 연결과 rollbackOnly 원인을 관리한다. REQUIRED 참여자는 기존 연결을 사용하며 바깥 호출이 commit·rollback과 연결 정리를 담당한다.
 - Service 프록시는 구현 메서드의 @Transactional을 검사한다. 자기 호출, 두 Service 간 참여, 예외 전파·삼킴 이후 전체 롤백을 테스트했다.
 - EntityMetadata는 @Table·@Id·@Column, 단일 ID, 컬럼-필드 대응을 분석한다. static·synthetic 필드는 제외하고 final 필드·잘못된 선언은 거부한다.
-- EntityManager는 클래스별 메타데이터를 캐시하고 persist에서 INSERT를 즉시 실행한다. 직접 지정 ID는 포함하고, IDENTITY 생성 ID는 제외한 뒤 같은 연결에서 키를 회수해 객체에 반영한다. find는 메타데이터로 SELECT를 만들고 기본 생성자로 새 객체를 생성한다. 생성 ID는 Long·Integer의 IDENTITY와 UUID·String의 UUID 전략을 지원한다. UUID는 INSERT 전에 생성해 ID 컬럼에 바인딩한다. 엔티티 UPDATE·DELETE·영속성 컨텍스트는 없다.
-- IDENTITY 테스트 10개와 JDBC 생성 키 오류 테스트 3개를 추가했다. UUID 테스트 11개를 추가해 엔티티 테스트 61개를 포함한 전체 131개가 `.\gradlew.bat test --rerun-tasks`로 통과했다.
+- EntityManager는 클래스별 메타데이터를 캐시하고 persist에서 INSERT를 즉시 실행한다. 직접 지정 ID는 포함하고, IDENTITY 생성 ID는 제외한 뒤 같은 연결에서 키를 회수해 객체에 반영한다. find는 메타데이터로 SELECT를 만들고 기본 생성자로 새 객체를 생성한다. 생성 ID는 Long·Integer의 IDENTITY와 UUID·String의 UUID 전략을 지원한다. UUID는 INSERT 전에 생성해 ID 컬럼에 바인딩한다. 엔티티 update·remove도 즉시 실행하며 영속성 컨텍스트는 없다.
+- update는 ID 외 모든 필드를 SET에, 실제 ID 컬럼을 WHERE에 사용한다. remove는 ID 조건으로 삭제한다. null 객체·null ID와 ID 전용 엔티티의 update는 거부한다. 둘 다 int 변경 행 수를 반환하고 기존 트랜잭션에 참여한다. [변경·삭제 상세](../04-entity-crud/05-update-and-remove.md).
+- 변경·삭제 테스트 17개를 추가해 엔티티 테스트 78개를 포함한 전체 148개가 `.\gradlew.bat test`로 통과했다.
 
 ## 실제 기술과의 대응
 
@@ -40,8 +41,7 @@ JDBC·행 매핑은 Spring JDBC, Mapper 인터페이스·SQL 어노테이션은 
 
 ## 다음 작업
 
-1. 엔티티 UPDATE·DELETE를 추가한다.
-2. 이후 영속성 컨텍스트의 객체 동일성·변경 감지·flush를 학습한다.
+1. 영속성 컨텍스트의 객체 동일성·변경 감지·flush를 학습한다.
 
 ## 실험과 검증 기록
 

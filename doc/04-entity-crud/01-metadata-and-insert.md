@@ -1,6 +1,6 @@
 # 04-01. 엔티티 메타데이터와 INSERT 자동 생성
 
-기준일: 2026-11-02. 현재는 메타데이터 분석, 직접 지정·IDENTITY·UUID ID를 지원하는 `persist()`, ID 조회 `find()`를 구현했다. 수정·삭제는 아직 없다.
+기준일: 2026-11-03. 메타데이터 분석, 직접 지정·IDENTITY·UUID ID를 지원하는 `persist()`, ID 조회 `find()`와 명시적 `update()`·`remove()`를 구현했다. 이 문서는 INSERT 경로를 설명한다.
 
 ## 실제 기술과의 연결
 
@@ -53,4 +53,4 @@ persist(user)
 .\gradlew.bat test
 ```
 
-`find(Class<T>, id)`는 [ID 조회와 객체 생성](02-find-by-id.md)에서 설명한다. 이후 추가한 [IDENTITY 생성 ID](03-identity-generated-id.md)를 참고한다. 다음은 엔티티 UPDATE·DELETE다.
+`find(Class<T>, id)`는 [ID 조회와 객체 생성](02-find-by-id.md)에서 설명한다. 후속 구현은 [IDENTITY 생성 ID](03-identity-generated-id.md), [UUID 생성 ID](04-uuid-generated-id.md), [엔티티 UPDATE·DELETE](05-update-and-remove.md)를 참고한다.

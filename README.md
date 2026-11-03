@@ -13,24 +13,26 @@ Spring Boot 애플리케이션이나 JPA 구현체가 아니다. 서버 실행 �
 
 ## 현재 지원 범위
 
-기준: 2026-11-02. 엔티티 CRUD 단계의 메타데이터·INSERT·ID 조회·IDENTITY·UUID 생성 ID 반영까지 구현했다.
+기준: 2026-11-03. 엔티티 CRUD와 IDENTITY·UUID 생성 ID 반영까지 구현했다.
 
 | 계층 | 지원 기능 | 주요 제약 |
 |---|---|---|
 | JDBC | 파라미터 바인딩, 단건·목록 조회, 변경 SQL, 자원 정리, 수동·자동 행 매핑 | 단건 조회는 결과가 없으면 `null`, 여러 행이면 첫 행 반환 |
 | Mapper | `@Select`, `@Insert`, `@Update`, `@Delete`, JDK 프록시 | 조회는 매핑 가능한 객체 또는 `List<T>`, 변경은 `int` 반환. default 메서드 실행 미지원 |
 | 트랜잭션 | 같은 스레드·관리자의 Connection 공유, commit·rollback, REQUIRED 참여, rollbackOnly, Service 프록시 | 자기 호출은 프록시를 통과하지 않음. 다른 관리자·스레드와 트랜잭션 공유 안 됨 |
-| 엔티티 | `@Table`, `@Id`, `@Column`, 클래스별 메타데이터 캐시, `persist`, `find` | 직접 지정 또는 IDENTITY·UUID 단일 ID 사용. `persist`는 즉시 INSERT하고 변경 행 수 반환 |
+| 엔티티 | `@Table`, `@Id`, `@Column`, 클래스별 메타데이터 캐시, `persist`, `find`, `update`, `remove` | 직접 지정 또는 IDENTITY·UUID 단일 ID 사용. `persist`는 즉시 INSERT하고 변경 행 수 반환 |
 
 아직 구현하지 않은 기능:
 
-- 엔티티 UPDATE·DELETE, SEQUENCE·TABLE·AUTO ID 생성 전략.
+- SEQUENCE·TABLE·AUTO ID 생성 전략.
 - 영속성 컨텍스트, 1차 캐시, 객체 동일성, 변경 감지, flush.
 - 관계 매핑, 복합 ID, 상속 필드 매핑, 별도 값 타입 변환.
 
 `find`는 매번 SELECT하고 새 객체를 만든다. 조회 타입에는 접근 가능한 기본 생성자가 필요하다. `persist`에는 기본 생성자가 필요 없다. 같은 이름의 JPA API와 동작이 같다고 가정하지 않는다.
 
-다음 학습 순서는 엔티티 UPDATE·DELETE → 영속성 컨텍스트다. 기능 변경은 요청 범위에 맞춰 진행한다.
+엔티티 update·remove는 ID 조건으로 즉시 SQL을 실행하고 변경 행 수를 반환한다. 대상이 없으면 0이며, null 객체·null ID와 ID 전용 타입의 update는 거부한다. [UPDATE·DELETE 사용법](doc/04-entity-crud/05-update-and-remove.md)을 참고한다.
+
+다음 학습 순서는 영속성 컨텍스트의 객체 동일성·변경 감지·flush다. 기능 변경은 요청 범위에 맞춰 진행한다.
 
 ## 환경과 검증 명령
 
@@ -61,7 +63,7 @@ bash ./gradlew build
 
 Windows PowerShell에서는 `bash ./gradlew` 대신 `.\gradlew.bat`을 사용한다.
 
-테스트 HTML 보고서는 `build/reports/tests/test/index.html`, XML 결과는 `build/test-results/test/`에 생성된다. 기존 진행 문서에는 전체 117개 테스트 통과가 기록되어 있다. 이 수치를 현재 실행 결과로 간주하지 말고, 검증 시 실행한 명령·결과를 별도로 보고한다. JDK 21을 찾지 못하면 먼저 로컬 설치와 Gradle toolchain 탐지를 확인한다.
+테스트 HTML 보고서는 `build/reports/tests/test/index.html`, XML 결과는 `build/test-results/test/`에 생성된다. 기존 진행 문서에는 전체 148개 테스트 통과가 기록되어 있다. 이 수치를 현재 실행 결과로 간주하지 말고, 검증 시 실행한 명령·결과를 별도로 보고한다. JDK 21을 찾지 못하면 먼저 로컬 설치와 Gradle toolchain 탐지를 확인한다.
 
 ## 코드 구조와 탐색 지점
 

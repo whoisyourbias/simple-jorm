@@ -96,6 +96,54 @@ public class EntityManager {
         }, values.toArray());
     }
 
+    /** ID 외 모든 매핑 필드를 즉시 수정하고 변경 행 수를 반환한다. 대상이 없으면 0이다. */
+    public int update(Object entity) throws SQLException {
+        if (entity == null) {
+            throw new IllegalArgumentException("수정할 엔티티가 필요합니다.");
+        }
+        EntityMetadata metadata = getMetadata(entity.getClass());
+        Object id = requiredId(metadata, entity);
+        List<String> assignments = new ArrayList<>();
+        List<Object> values = new ArrayList<>();
+        for (Map.Entry<String, Field> column : metadata.getColumns().entrySet()) {
+            // ID는 SET에 넣지 않고 마지막 WHERE 바인딩에만 사용한다.
+            if (column.getValue().equals(metadata.getIdField())) {
+                continue;
+            }
+            assignments.add(column.getKey() + " = ?");
+            values.add(readField(column.getValue(), entity));
+        }
+        if (assignments.isEmpty()) {
+            throw new IllegalArgumentException("수정할 ID 외 필드가 필요합니다.");
+        }
+        values.add(id);
+        String sql = "UPDATE " + metadata.getTableName()
+                + " SET " + String.join(", ", assignments)
+                + " WHERE " + metadata.getIdColumnName() + " = ?";
+        return jdbcTemplate.update(sql, values.toArray());
+    }
+
+    /** ID 조건으로 즉시 삭제하고 변경 행 수를 반환한다. 객체의 필드 값은 유지한다. */
+    public int remove(Object entity) throws SQLException {
+        if (entity == null) {
+            throw new IllegalArgumentException("삭제할 엔티티가 필요합니다.");
+        }
+        EntityMetadata metadata = getMetadata(entity.getClass());
+        Object id = requiredId(metadata, entity);
+        String sql = "DELETE FROM " + metadata.getTableName()
+                + " WHERE " + metadata.getIdColumnName() + " = ?";
+        return jdbcTemplate.update(sql, id);
+    }
+
+    /** 변경·삭제는 생성 전략에 관계없이 이미 지정된 ID를 조건으로 사용한다. */
+    private Object requiredId(EntityMetadata metadata, Object entity) throws SQLException {
+        Object id = readField(metadata.getIdField(), entity);
+        if (id == null) {
+            throw new IllegalArgumentException("수정·삭제할 ID가 필요합니다.");
+        }
+        return id;
+    }
+
     /**
      * ID에 일치하는 행을 새 엔티티 객체로 변환한다.
      * 결과가 없으면 null을 반환한다. 기본 생성자가 필요하며 엔티티 인스턴스는 캐시하지 않는다.
