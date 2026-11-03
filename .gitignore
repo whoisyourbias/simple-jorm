@@ -6,6 +6,13 @@ build/
 *.class
 bin/
 
+# IntelliJ IDEA local project metadata and compiler output
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
 # STS / Eclipse local project metadata
 .classpath
 .project
