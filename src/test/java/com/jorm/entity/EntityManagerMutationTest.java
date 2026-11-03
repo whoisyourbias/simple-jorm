@@ -82,6 +82,7 @@ class EntityManagerMutationTest {
         if (keepAlive != null) keepAlive.close();
     }
 
+    /** 별칭 컬럼과 현재 객체 값으로 지정 ID의 행만 수정하고 반복 수정 시 새 값을 읽으며 ID는 유지하는지 검증한다. */
     @Test
     void updatesOnlyTargetRowUsingMappedColumnsAndCurrentValues() throws SQLException {
         User user = new User(1L, "Carol", "carol@example.com");
@@ -94,6 +95,7 @@ class EntityManagerMutationTest {
         assertEquals(1L, user.id);
     }
 
+    /** UPDATE에서 따옴표가 포함된 문자열과 null을 값으로 바인딩하고 다른 행은 변경하지 않는지 검증한다. */
     @Test
     void bindsQuotedTextAndNullOnUpdate() throws SQLException {
         String name = "O'Brien'); DELETE FROM users; --";
@@ -102,18 +104,21 @@ class EntityManagerMutationTest {
                 new StoredUser(2L, "Bob", "bob@example.com")), storedUsers());
     }
 
+    /** 존재하지 않는 ID를 수정하면 0을 반환하고 새 행을 삽입하거나 기존 행을 바꾸지 않는지 검증한다. */
     @Test
     void updateMissingIdReturnsZeroWithoutInserting() throws SQLException {
         assertEquals(0, entities.update(new User(99L, "missing", null)));
         assertOriginalRows();
     }
 
+    /** null 객체의 UPDATE를 잘못된 입력으로 거부하고 기존 데이터를 유지하는지 검증한다. */
     @Test
     void rejectsNullEntityOnUpdate() throws SQLException {
         assertThrows(IllegalArgumentException.class, () -> entities.update(null));
         assertOriginalRows();
     }
 
+    /** ID가 null인 객체의 UPDATE를 거부하고 기존 데이터를 유지하는지 검증한다. */
     @Test
     void rejectsNullIdOnUpdate() throws SQLException {
         assertThrows(IllegalArgumentException.class,
@@ -121,12 +126,14 @@ class EntityManagerMutationTest {
         assertOriginalRows();
     }
 
+    /** ID 외에 수정할 필드가 없는 엔티티는 UPDATE를 거부하고 기존 행을 유지하는지 검증한다. */
     @Test
     void rejectsUpdateWhenNoNonIdFieldsExist() throws SQLException {
         assertThrows(IllegalArgumentException.class, () -> entities.update(new OnlyId()));
         assertOriginalRows();
     }
 
+    /** UPDATE의 유일성 제약 위반을 SQLException으로 전달하고 기존 행을 변경하지 않는지 검증한다. */
     @Test
     void propagatesUpdateConstraintFailureWithoutChangingStoredRows() throws SQLException {
         assertThrows(SQLException.class,
@@ -134,6 +141,7 @@ class EntityManagerMutationTest {
         assertOriginalRows();
     }
 
+    /** 지정 ID의 행만 삭제하고 객체 필드는 유지하며 같은 객체를 다시 삭제하면 0을 반환하는지 검증한다. */
     @Test
     void removesOnlyTargetRowAndKeepsObjectValues() throws SQLException {
         User user = new User(1L, "irrelevant", null);
@@ -144,18 +152,21 @@ class EntityManagerMutationTest {
         assertEquals(0, entities.remove(user));
     }
 
+    /** 존재하지 않는 ID를 삭제하면 0을 반환하고 기존 데이터를 유지하는지 검증한다. */
     @Test
     void removeMissingIdReturnsZero() throws SQLException {
         assertEquals(0, entities.remove(new User(99L, null, null)));
         assertOriginalRows();
     }
 
+    /** null 객체의 DELETE를 잘못된 입력으로 거부하고 기존 데이터를 유지하는지 검증한다. */
     @Test
     void rejectsNullEntityOnRemove() throws SQLException {
         assertThrows(IllegalArgumentException.class, () -> entities.remove(null));
         assertOriginalRows();
     }
 
+    /** ID가 null인 객체의 DELETE를 거부하고 기존 데이터를 유지하는지 검증한다. */
     @Test
     void rejectsNullIdOnRemove() throws SQLException {
         assertThrows(IllegalArgumentException.class,
@@ -163,17 +174,20 @@ class EntityManagerMutationTest {
         assertOriginalRows();
     }
 
+    /** ID 필드만 있는 엔티티도 별칭 ID 컬럼을 조건으로 해당 행만 삭제할 수 있는지 검증한다. */
     @Test
     void removesEntityWithOnlyId() throws SQLException {
         assertEquals(1, entities.remove(new OnlyId()));
         assertEquals(List.of(new StoredUser(2L, "Bob", "bob@example.com")), storedUsers());
     }
 
+    /** 존재하지 않는 테이블을 삭제할 때 SQL 실행 오류를 SQLException으로 전파하는지 검증한다. */
     @Test
     void propagatesRemoveSqlFailure() {
         assertThrows(SQLException.class, () -> entities.remove(new MissingTable()));
     }
 
+    /** 같은 트랜잭션에서 서로 다른 행을 수정하고 삭제한 결과가 정상 종료 후 함께 커밋되는지 검증한다. */
     @Test
     void commitsUpdateAndRemoveInSameTransaction() throws SQLException {
         transactions.execute(() -> {
@@ -185,6 +199,7 @@ class EntityManagerMutationTest {
         assertEquals(List.of(new StoredUser(1L, "changed", null)), storedUsers());
     }
 
+    /** 후속 SQL 실패 시 앞선 UPDATE와 DELETE를 함께 롤백하되 Java 객체의 변경 값은 유지하는지 검증한다. */
     @Test
     void rollsBackBothMutationsAfterLaterSqlFailure() throws SQLException {
         User changed = new User(1L, "changed", null);
@@ -200,6 +215,7 @@ class EntityManagerMutationTest {
         assertEquals("changed", changed.name); // 롤백이 Java 객체를 복구하지 않는다.
     }
 
+    /** IDENTITY 엔티티의 기존 ID를 재생성하지 않고 수정과 삭제의 조건으로 사용하며 객체 ID는 유지하는지 검증한다. */
     @Test
     void updatesAndRemovesIdentityEntityWithoutRegeneratingId() throws SQLException {
         IdentityUser user = new IdentityUser();
@@ -215,6 +231,7 @@ class EntityManagerMutationTest {
         assertEquals(id, user.id);
     }
 
+    /** UUID 엔티티의 기존 ID를 재생성하지 않고 수정과 삭제의 조건으로 사용하며 객체 ID는 유지하는지 검증한다. */
     @Test
     void updatesAndRemovesUuidEntityWithoutRegeneratingId() throws SQLException {
         UuidUser user = new UuidUser();

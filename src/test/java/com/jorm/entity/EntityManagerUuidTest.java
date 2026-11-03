@@ -73,6 +73,7 @@ class EntityManagerUuidTest {
         if (keepAlive != null) keepAlive.close();
     }
 
+    /** v4 UUID를 생성해 별칭 ID 컬럼에 저장하고 직접 SQL과 find로 같은 UUID 및 필드 값을 읽는지 검증한다. */
     @Test
     void generatesV4UuidAndBindsMappedIdColumn() throws SQLException {
         User user = new User(); user.name = "O'Brien";
@@ -87,6 +88,7 @@ class EntityManagerUuidTest {
         assertEquals(user.name, found.name);
     }
 
+    /** 표준 문자열 형식의 v4 UUID를 String ID에 기록하고 DB 저장 및 find 조회 결과가 일치하는지 검증한다. */
     @Test
     void generatesCanonicalUuidStringAndFindsEntity() throws SQLException {
         StringUser user = new StringUser(); user.name = "Alice";
@@ -98,6 +100,7 @@ class EntityManagerUuidTest {
         assertEquals(user.name, entities.find(StringUser.class, user.id).name);
     }
 
+    /** UUID ID 필드만 있는 엔티티도 저장하고 생성한 ID로 조회할 수 있는지 검증한다. */
     @Test
     void insertsEntityWithOnlyUuidId() throws SQLException {
         OnlyId entity = new OnlyId();
@@ -106,6 +109,7 @@ class EntityManagerUuidTest {
         assertEquals(entity.id, entities.find(OnlyId.class, entity.id).id);
     }
 
+    /** 서로 다른 엔티티에 독립적인 UUID를 생성하고 각 ID의 저장 값과 전체 행 수가 올바른지 검증한다. */
     @Test
     void generatesIndependentIdsForDifferentEntities() throws SQLException {
         User first = new User(); first.name = "Alice";
@@ -118,6 +122,7 @@ class EntityManagerUuidTest {
         assertEquals(2L, countUsers());
     }
 
+    /** 이미 값이 지정된 자동 생성 UUID를 저장 전에 거부하고 기존 ID를 교체하거나 행을 삽입하지 않는지 검증한다. */
     @Test
     void rejectsAssignedGeneratedUuidWithoutReplacingIt() throws SQLException {
         User user = new User(); user.name = "Alice";
@@ -128,6 +133,7 @@ class EntityManagerUuidTest {
         assertEquals(0L, countUsers());
     }
 
+    /** UUID가 생성된 동일 객체를 다시 저장하면 거부하고 최초 ID와 저장된 한 행을 유지하는지 검증한다. */
     @Test
     void rejectsPersistingSameGeneratedEntityTwice() throws SQLException {
         User user = new User(); user.name = "Alice";
@@ -138,6 +144,7 @@ class EntityManagerUuidTest {
         assertEquals(1L, countUsers());
     }
 
+    /** INSERT 전에 UUID를 생성하므로 SQL 실패 시 행은 없더라도 객체에는 생성한 UUID가 남는지 검증한다. */
     @Test
     void keepsPreInsertUuidWhenSqlFails() throws SQLException {
         User user = new User(); // name NOT NULL 위반
@@ -147,6 +154,7 @@ class EntityManagerUuidTest {
         assertEquals(0L, countUsers());
     }
 
+    /** 업무 예외를 원본 그대로 전파하고 DB 행은 롤백하되 객체의 생성 UUID는 유지하는지 검증한다. */
     @Test
     void rollsBackRowButKeepsGeneratedUuid() throws SQLException {
         User user = new User(); user.name = "Alice";
@@ -161,16 +169,19 @@ class EntityManagerUuidTest {
         assertEquals(0L, countUsers());
     }
 
+    /** UUID 생성 전략을 숫자 타입 ID 필드에 지정하면 메타데이터 분석에서 거부하는지 검증한다. */
     @Test
     void rejectsNumericUuidField() {
         assertThrows(IllegalArgumentException.class, () -> new EntityMetadata(NumericId.class));
     }
 
+    /** ID가 아닌 필드에 UUID 생성 전략을 지정하면 메타데이터 분석에서 거부하는지 검증한다. */
     @Test
     void rejectsUuidGenerationOnNonIdField() {
         assertThrows(IllegalArgumentException.class, () -> new EntityMetadata(NonIdGeneration.class));
     }
 
+    /** 생성 어노테이션이 없는 UUID ID는 직접 지정한 값을 그대로 저장하고 조회하는지 검증한다. */
     @Test
     void preservesManuallyAssignedUuidWithoutGenerationAnnotation() throws SQLException {
         AssignedUuid user = new AssignedUuid(); user.name = "Assigned";
