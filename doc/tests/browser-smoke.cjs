@@ -88,6 +88,7 @@ async function main() {
       for (const width of [320,390,768,1024,1440]) {
         await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:false}); await cdp.settle();
         const metrics = await cdp.evaluate(`({width:innerWidth,scroll:document.documentElement.scrollWidth,font:parseFloat(getComputedStyle(document.querySelector('.scene-code pre')).fontSize)})`);
+        if (metrics.scroll > metrics.width+1) console.error('Overflow elements',await cdp.evaluate(`Array.from(document.querySelectorAll('body *')).filter(e=>e.getBoundingClientRect().right>innerWidth+1 && !e.closest('pre, .table-wrap')).map(e=>({tag:e.tagName,class:e.className,text:e.textContent.slice(0,60),right:e.getBoundingClientRect().right})).slice(0,12)`));
         assert.ok(metrics.scroll <= metrics.width+1,JSON.stringify(metrics)); assert.ok(metrics.font>=12);
       }
     });
@@ -107,12 +108,16 @@ async function main() {
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
     await check('mapper scenes synchronize input, annotation, SQL and returned object',async()=> {
       const result=await cdp.evaluate(`(() => {const lab=document.getElementById('proxy-lab');const click=a=>lab.querySelector('[data-action="'+a+'"]').click();click('restart');for(let i=0;i<6;i++)click('next');const bound=lab.querySelector('.values').textContent;click('next');click('next');return {bound,result:lab.querySelector('.values').textContent,highlight:lab.querySelectorAll('.code-line.active').length};})()`);
-      assert.match(result.bound,/setObject\(1, 1L\)/);assert.match(result.result,/Alice/);assert.ok(result.highlight>0);
+      assert.match(result.bound,/setLong\(1, 1L\)/);assert.match(result.result,/Alice/);assert.ok(result.highlight>0);
     });
     await cdp.evaluate(`document.getElementById('proxy-lab').scrollIntoView({behavior:'instant',block:'start'})`); await cdp.capture('desktop-proxy');
     await check('all mapper branches show the right outcome without stale result values',async()=> {
       const outputs=await cdp.evaluate(`(() => {const lab=document.getElementById('proxy-lab');return ['missing','object','mapper'].map(name=>{const select=lab.querySelector('[data-action="scenario"]');select.value=name;select.dispatchEvent(new Event('change',{bubbles:true}));for(let i=0;i<12;i++)lab.querySelector('[data-action="next"]').click();return lab.querySelector('.values').textContent;});})()`);
-      assert.match(outputs[0],/UnsupportedOperationException/);assert.doesNotMatch(outputs[0],/Alice/);assert.match(outputs[1],/MapperProxy/);assert.match(outputs[2],/Alice/);
+      assert.match(outputs[0],/BindingException/);assert.doesNotMatch(outputs[0],/Alice/);assert.match(outputs[1],/MapperProxy/);assert.match(outputs[2],/Alice/);
+    });
+    await check('default mapper body reenters SQL mapping and returns the result',async()=> {
+      const state=await cdp.evaluate(`(() => {const lab=document.getElementById('proxy-lab');const select=lab.querySelector('[data-action="scenario"]');select.value='default';select.dispatchEvent(new Event('change',{bubbles:true}));const start=lab.querySelector('.values').textContent;for(let i=0;i<4;i++)lab.querySelector('[data-action="next"]').click();return {start,end:lab.querySelector('.values').textContent};})()`);
+      assert.match(state.start,/MethodHandle/);assert.doesNotMatch(state.start,/Alice/);assert.match(state.end,/Alice/);
     });
     await check('three transaction paths yield 100/100, 70/100 and 100/100',async()=> {
       const outcomes=await cdp.evaluate(`(() => {const lab=document.getElementById('transaction-lab');return ['external','self','outer'].map(name=>{const select=lab.querySelector('[data-action="scenario"]');select.value=name;select.dispatchEvent(new Event('change',{bubbles:true}));for(let i=0;i<10;i++)lab.querySelector('[data-action="next"]').click();return [...lab.querySelectorAll('[data-account]')].map(e=>Number(e.textContent));});})()`);
@@ -120,7 +125,7 @@ async function main() {
     });
     await cdp.evaluate(`document.getElementById('transaction-lab').scrollIntoView({behavior:'instant',block:'start'})`);await cdp.capture('desktop-transaction');
     await check('keyboard navigation preserves focus and updates the scene',async()=> {
-      await cdp.evaluate(`document.querySelector('#proxy-lab [data-action="restart"]').click();document.querySelector('#proxy-lab .graph').focus()`);
+      await cdp.evaluate(`(() => {const select=document.querySelector('#proxy-lab [data-action="scenario"]');select.value='mapper';select.dispatchEvent(new Event('change',{bubbles:true}));document.querySelector('#proxy-lab [data-action="restart"]').click();document.querySelector('#proxy-lab .graph').focus();})()`);
       await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39});
       await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39});
       assert.match(await cdp.evaluate('document.querySelector("#proxy-lab .scene-count").textContent'),/02 \/ 09/);

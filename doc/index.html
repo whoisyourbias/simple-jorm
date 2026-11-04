@@ -3,234 +3,820 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="JDBC부터 JDK 동적 프록시, 트랜잭션, 엔티티 CRUD까지. simple-jorm을 직접 만들며 이해하는 Java ORM의 내부 구조.">
+<meta name="description" content="Spring JDBC, MyBatis, Spring 트랜잭션과 JPA/Hibernate의 실제 동작을 다섯 단계와 인터랙티브 실행 흐름으로 살펴봅니다.">
 <meta name="color-scheme" content="light">
-<title>ORM은 어떻게 만들어질까 — simple-jorm</title>
+<title>ORM은 어떻게 동작할까 — Java 데이터 접근 안내서</title>
 <style>
 :root{--paper:#f8f7f3;--white:#fff;--ink:#24342f;--muted:#596660;--line:#d7ddd6;--green:#245b48;--mint:#e8efe7;--orange:#b34c2e;--peach:#fbede5;--code:#1f2c29;--code-ink:#e8eee5;--radius:12px;--sans:"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",sans-serif;--mono:Consolas,"SFMono-Regular",monospace}
-*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:0}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.85 var(--sans);word-break:keep-all;overflow-wrap:break-word}a{color:var(--green);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}button,select{font:inherit}button,summary,select{cursor:pointer}button{touch-action:manipulation}button:focus-visible,a:focus-visible,summary:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--orange);outline-offset:4px}::selection{background:#dce9ce}h1,h2,h3,h4,p{margin:0}h1,h2,h3,h4{line-height:1.3;letter-spacing:-.045em}p+p{margin-top:12px}h1{font-size:clamp(42px,5.9vw,82px);font-weight:760;line-height:1.15}h2{font-size:clamp(30px,3vw,43px)}h3{font-size:23px}h4{font-size:17px}code{font-family:var(--mono);font-size:.91em;overflow-wrap:anywhere}p code,li code,td code{background:#edf0e9;padding:2px 5px;border-radius:4px}pre{margin:0;white-space:pre;word-break:normal;overflow:auto;max-width:100%;font:14px/1.85 var(--mono);tab-size:2}pre code{font:inherit;overflow-wrap:normal}ul,ol{padding-left:23px;margin:14px 0}li+li{margin-top:7px}small{font-size:13px}.skip{position:fixed;top:-100px;left:20px;z-index:10;background:white;padding:8px 20px}.skip:focus{top:12px}.topbar{height:72px;border-bottom:1px solid var(--line);background:rgba(248,247,243,.97);position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:0 4vw;gap:16px}.brand{font:700 22px var(--mono);letter-spacing:-1px;text-decoration:none;white-space:nowrap}.brand span{color:var(--orange)}.top-note{font:12px var(--mono);color:var(--muted);letter-spacing:.08em}.top-link{font-size:13px;text-decoration:none;border-bottom:1px solid var(--green)}.layout{display:grid;grid-template-columns:194px minmax(0,1fr);max-width:1480px;margin:auto;gap:42px;padding:0 4vw}.sidebar{position:sticky;top:104px;align-self:start;padding-top:40px;font-size:13px;max-height:calc(100vh - 120px);overflow:auto}.sidebar>p{font:11px var(--mono);letter-spacing:.14em;color:var(--muted);margin-bottom:20px}.sidebar a{display:block;text-decoration:none;border-left:2px solid transparent;padding:7px 0 7px 16px;color:var(--muted)}.sidebar a.current{border-color:var(--orange);color:var(--ink);font-weight:700;background:linear-gradient(90deg,var(--peach),transparent)}.sidebar a em{font-style:normal;font:11px var(--mono);margin-right:10px}.sidebar .sub{padding-left:38px;font-size:12px}.sidebar .side-foot{margin-top:25px;padding:18px 0 0 17px;border-top:1px solid var(--line);color:var(--muted);font-size:12px;line-height:1.7}.mobile-nav{display:none}main{min-width:0}.eyebrow{display:flex;align-items:center;gap:10px;font:11px/1.5 var(--mono);letter-spacing:.12em;color:var(--green);margin-bottom:22px}.eyebrow:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--orange);flex:none}.hero{padding:66px 0 44px;display:grid;grid-template-columns:1.3fr .8fr;gap:32px;align-items:center}.hero h1 em{font-style:normal;color:var(--green)}.hero p{font-size:17px;color:var(--muted);max-width:540px;margin:24px 0}.hero-actions{display:flex;gap:12px;flex-wrap:wrap}.button{display:inline-flex;justify-content:center;align-items:center;gap:8px;border:1px solid var(--line);border-radius:6px;background:var(--white);color:var(--ink);padding:10px 17px;font-size:13px;font-weight:650;text-decoration:none;line-height:1.5}.button.primary{background:var(--green);border-color:var(--green);color:white}.button:hover{filter:brightness(.96)}.button:disabled,.button[aria-disabled="true"]{opacity:.45;cursor:default}.hero-structure{padding:24px 21px;background:#edf0e8;border:1px solid var(--line);border-radius:var(--radius);position:relative}.hero-structure .label{font:10px var(--mono);letter-spacing:.1em;color:var(--muted);margin-bottom:20px}.stack-layer{border:1px solid #becbbf;background:var(--white);padding:11px 14px;margin:7px 0;display:flex;justify-content:space-between;gap:10px;font:12px var(--mono);border-radius:5px}.stack-layer.top{background:var(--green);color:white;border-color:var(--green)}.stack-layer i{font-style:normal;font-size:10px;opacity:.7}.stack-bottom{font:11px var(--mono);text-align:center;margin-top:13px;color:var(--muted)}.hero-meta{border-top:1px solid var(--line);padding:13px 0;display:flex;flex-wrap:wrap;gap:8px 25px;font-size:11px;color:var(--muted)}.roadmap{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin-top:27px;border:1px solid var(--line);border-radius:8px;overflow:hidden}.roadmap a{padding:16px 12px;text-decoration:none;border-right:1px solid var(--line);line-height:1.5}.roadmap a:last-child{border:0;background:#f0f0ec}.roadmap a:hover{background:var(--mint)}.roadmap .num{font:11px var(--mono);display:block;color:var(--orange);margin-bottom:10px}.roadmap b{font-size:13px;display:block}.roadmap small{font-size:10px;color:var(--muted)}.section{padding:65px 0;border-top:1px solid var(--line);scroll-margin-top:96px}.section.intro{margin-top:50px}.section-head{display:flex;gap:22px;align-items:flex-start;margin-bottom:26px}.section-no{font:300 56px/1 var(--mono);letter-spacing:-5px;color:#87968b;min-width:62px}.section-kicker{font:11px var(--mono);color:var(--green);letter-spacing:.08em;margin-bottom:9px}.tag{display:inline-block;font:11px/1.5 var(--sans);letter-spacing:0;background:var(--mint);border:1px solid #c4d5c4;border-radius:30px;padding:2px 8px;margin-left:8px;vertical-align:middle;color:var(--green)}.tag.future{color:var(--muted);background:#eeeeea;border-color:var(--line)}.lead{font-size:18px;color:var(--muted);max-width:780px;margin-bottom:25px}.question{font-size:21px;font-weight:650;border-left:3px solid var(--orange);padding:8px 0 8px 19px;margin:25px 0}.pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:22px 0}.explain{padding:24px;background:var(--white);border:1px solid var(--line);border-radius:8px}.explain h3,.explain h4{margin-bottom:13px}.caption{font:11px var(--mono);letter-spacing:.08em;color:var(--muted);margin-bottom:12px}.codebox{background:var(--code);color:var(--code-ink);border-radius:8px;overflow:hidden;min-width:0}.codebox .code-label{padding:10px 17px;border-bottom:1px solid #42514a;color:#b7c8ba;font:11px var(--mono)}.codebox pre{padding:18px}.codebox p{padding:14px 18px;font-size:12px;color:#c8d3c8}.flow-strip{display:flex;align-items:center;gap:10px;padding:20px;background:var(--mint);border:1px solid #cfdbcd;border-radius:8px;margin:22px 0;font-size:12px;flex-wrap:wrap}.flow-strip b{border:1px solid #b5c8b8;border-radius:5px;padding:8px 12px;background:white}.flow-strip span{color:var(--green)}.difference{padding:22px 24px;border:1px solid #e7d1bf;background:#faf0e6;border-radius:8px;margin:24px 0}.difference h4{font-size:15px;color:#7c3f24;margin-bottom:10px}.difference p,.difference li{font-size:14px}.source-links{font-size:12px;display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:18px}.next-link{display:flex;justify-content:space-between;gap:20px;align-items:center;border-top:1px dashed #bfcabf;padding-top:19px;margin-top:28px;font-size:13px;color:var(--muted)}.next-link a{flex-shrink:0;font-weight:650}.note{border-left:3px solid #95ad97;padding:12px 18px;background:#edf1e9;font-size:14px;margin:20px 0}.table-wrap{max-width:100%;overflow:auto;margin:22px 0;border:1px solid var(--line);border-radius:8px;background:white}.table-wrap:focus-visible{outline-offset:-3px}table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.7}th,td{padding:13px 16px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}th{font-size:11px;font-weight:650;background:#eef1ea;white-space:nowrap}tbody tr:last-child td{border-bottom:0}details{margin-top:18px;border:1px solid var(--line);border-radius:8px;background:white;overflow:hidden}summary{padding:15px 20px;font-size:14px;font-weight:650}details .detail-body{padding:0 20px 20px;font-size:14px}details .codebox{margin:0 15px 15px}.architecture{padding:25px;border:1px solid var(--line);border-radius:10px;background:white;margin:25px 0}.arch-paths{display:grid;grid-template-columns:1fr 1fr;gap:20px}.arch-path{text-align:center;border:1px solid var(--line);padding:18px;border-radius:7px}.arch-path strong{display:block;font:14px var(--mono)}.arch-path small{display:block;color:var(--muted);margin-top:8px}.arch-shared{margin-top:15px;text-align:center;background:var(--mint);border:1px solid #bcd0bd;border-radius:5px;padding:12px;font-size:13px}.arch-tx{border:1px dashed var(--green);padding:16px;border-radius:8px}.arch-tx>.caption{color:var(--green)}.lab{margin:30px 0;background:white;border:1px solid #b9cabd;border-radius:12px;overflow:hidden;scroll-margin-top:96px}.lab-heading{background:var(--green);color:#fff;padding:25px 28px}.lab-heading .caption{color:#ccdccf;margin-bottom:9px}.lab-heading h3{font-size:26px}.lab-heading p{font-size:13px;color:#d3e2d5;margin-top:9px}.scenario-bar{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;gap:10px}.scenario-bar label{font-size:12px;font-weight:650}.scenario-bar select{min-width:0;max-width:100%;padding:7px 28px 7px 10px;border:1px solid #b8c7ba;border-radius:5px;background:white;color:var(--ink);font-size:13px}.lab-scene{padding:20px 24px 14px;min-height:116px}.scene-count{font:11px var(--mono);color:var(--orange);display:block;margin-bottom:6px}.lab-scene h4{font-size:20px;letter-spacing:-.03em}.lab-scene p{font-size:13px;color:var(--muted);margin-top:9px}.lab-grid{display:grid;grid-template-columns:1fr 1.08fr;padding:0 20px;gap:14px}.diagram-panel{background:#f5f7f1;border:1px solid var(--line);border-radius:8px;padding:15px;min-width:0}.diagram-panel>.caption{margin-bottom:5px}.graph{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:37px 15px;padding:24px 0 18px;min-height:220px;align-content:center}.graph svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}.graph-node{z-index:1;position:relative;min-width:0;border:1px solid #bdcbbc;border-radius:6px;background:#fff;text-align:center;padding:12px 4px;transition:background .22s,border-color .22s,transform .22s;line-height:1.6;align-self:center}.graph-node strong{font-size:12px;display:block;overflow-wrap:anywhere;word-break:normal}.graph-node small{font:10px/1.6 var(--mono);color:var(--muted);display:block}.graph-node.active{background:#dbe9d6;border:2px solid var(--green);padding:11px 3px;transform:translateY(-2px)}.graph-node.active:before{content:"현재";position:absolute;top:-18px;left:0;font-size:9px;color:var(--green)}.graph .flow-path{fill:none;stroke:var(--orange);stroke-width:2}.flow-dot{fill:var(--orange)}.diagram-note{font-size:11px;line-height:1.7;color:var(--muted);min-height:38px}.scene-code{background:var(--code);border-radius:8px;color:var(--code-ink);overflow:hidden;min-width:0;align-self:stretch}.scene-code .caption{color:#c6d2c4;padding:13px 15px;margin:0;border-bottom:1px solid #42514a;font-size:10px}.scene-code pre{padding:12px 0;min-height:226px;font-size:12px;line-height:1.95}.code-line{display:block;padding:0 13px;border-left:3px solid transparent}.code-line.active{border-color:#f1b38b;background:#435c46;color:#fff}.line-no{display:inline-block;width:25px;color:#aebfac;font-size:10px;user-select:none}.values{margin:14px 20px 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--line);border-radius:7px;background:#f8f9f5}.value{padding:11px 13px;min-width:0;border-right:1px solid var(--line)}.value:last-child{border:0}.value dt{font-size:10px;color:var(--muted);margin:0 0 4px}.value dd{font:12px/1.75 var(--mono);margin:0;overflow-wrap:anywhere;word-break:normal}.balance{margin:14px 20px 0;display:grid;grid-template-columns:1fr 1fr;gap:12px}.account{border:1px solid var(--line);background:#f5f6f1;padding:10px 15px;border-radius:7px;font-size:12px;display:flex;justify-content:space-between;align-items:center}.account strong{font:600 25px var(--mono)}.account.changed{background:var(--peach);border-color:#ddad90}.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:16px 20px}.controls .button{padding:8px 11px;font-size:12px;min-height:38px}.controls label{margin-left:auto;font-size:11px}.controls select{border:1px solid #b8c7ba;border-radius:4px;padding:5px;color:var(--ink);background:white;font-size:12px;min-height:36px}.play-state{font:11px var(--mono);color:var(--muted);padding:0 21px 13px;min-height:30px}.step-progress{height:3px;background:#e4eae0}.step-progress span{display:block;height:100%;background:var(--orange);transition:width .2s}.lab-foot{background:#f2f4ed;padding:12px 22px;font-size:11px;color:var(--muted);border-top:1px solid var(--line)}.static-steps{margin:18px 20px 20px}.static-steps .detail-body{font-size:13px}.static-steps li{padding:3px 0}.lab .motion-note{font-size:11px;margin:0 20px 14px;color:var(--muted)}.ecosystem-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:23px 0}.eco{border:1px solid var(--line);border-radius:8px;padding:22px;background:white}.eco .caption{color:var(--orange)}.eco h3{font-size:19px;margin-bottom:12px}.eco p{font-size:14px}.eco .chain{font:12px/1.8 var(--mono);padding-top:12px;margin-top:13px;border-top:1px solid var(--line);color:var(--green)}.sources{display:grid;grid-template-columns:1fr 1fr;gap:20px}.sources h3{font-size:17px;margin-bottom:13px}.sources a{font-size:13px}.sources ul{list-style:none;padding:0}.sources li{padding:6px 0;border-bottom:1px solid var(--line)}footer{padding:30px 0 45px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;display:flex;justify-content:space-between;gap:20px}.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}[hidden]{display:none!important}.js-only{display:none}.js-ready .js-only{display:block}.js-ready .scenario-bar,.js-ready .controls{display:flex}.no-js-note{padding:20px;border-bottom:1px solid var(--line);font-size:13px}.js-ready .no-js-note{display:none}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:0}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.85 var(--sans);word-break:keep-all;overflow-wrap:break-word}a{color:var(--green);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}button,select{font:inherit}button,summary,select{cursor:pointer}button{touch-action:manipulation}button:focus-visible,a:focus-visible,summary:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--orange);outline-offset:4px}::selection{background:#dce9ce}h1,h2,h3,h4,p{margin:0}h1,h2,h3,h4{line-height:1.3;letter-spacing:-.045em}p+p{margin-top:12px}h1{font-size:clamp(42px,5.9vw,82px);font-weight:760;line-height:1.15}h2{font-size:clamp(30px,3vw,43px)}h3{font-size:23px}h4{font-size:17px}code{font-family:var(--mono);font-size:.91em;overflow-wrap:anywhere}p code,li code,td code{background:#edf0e9;padding:2px 5px;border-radius:4px}pre{margin:0;white-space:pre;word-break:normal;overflow:auto;max-width:100%;font:14px/1.85 var(--mono);tab-size:2}pre code{font:inherit;overflow-wrap:normal}ul,ol{padding-left:23px;margin:14px 0}li+li{margin-top:7px}small{font-size:13px}.skip{position:fixed;top:-100px;left:20px;z-index:10;background:white;padding:8px 20px}.skip:focus{top:12px}.topbar{height:72px;border-bottom:1px solid var(--line);background:rgba(248,247,243,.97);position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:0 4vw;gap:16px}.brand{font:700 22px var(--mono);letter-spacing:-1px;text-decoration:none;white-space:nowrap}.brand span{color:var(--orange)}.top-note{font:12px var(--mono);color:var(--muted);letter-spacing:.08em}.top-link{font-size:13px;text-decoration:none;border-bottom:1px solid var(--green)}.layout{display:grid;grid-template-columns:194px minmax(0,1fr);max-width:1480px;margin:auto;gap:42px;padding:0 4vw}.sidebar{position:sticky;top:104px;align-self:start;padding-top:40px;font-size:13px;max-height:calc(100vh - 120px);overflow:auto}.sidebar>p{font:11px var(--mono);letter-spacing:.14em;color:var(--muted);margin-bottom:20px}.sidebar a{display:block;text-decoration:none;border-left:2px solid transparent;padding:7px 0 7px 16px;color:var(--muted)}.sidebar a.current{border-color:var(--orange);color:var(--ink);font-weight:700;background:linear-gradient(90deg,var(--peach),transparent)}.sidebar a em{font-style:normal;font:11px var(--mono);margin-right:10px}.sidebar .sub{padding-left:38px;font-size:12px}.sidebar .side-foot{margin-top:25px;padding:18px 0 0 17px;border-top:1px solid var(--line);color:var(--muted);font-size:12px;line-height:1.7}.mobile-nav{display:none}main{min-width:0}.eyebrow{display:flex;align-items:center;gap:10px;font:11px/1.5 var(--mono);letter-spacing:.12em;color:var(--green);margin-bottom:22px}.eyebrow:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--orange);flex:none}.hero{padding:66px 0 44px;display:grid;grid-template-columns:1.3fr .8fr;gap:32px;align-items:center}.hero h1 em{font-style:normal;color:var(--green)}.hero p{font-size:17px;color:var(--muted);max-width:540px;margin:24px 0}.hero-actions{display:flex;gap:12px;flex-wrap:wrap}.button{display:inline-flex;justify-content:center;align-items:center;gap:8px;border:1px solid var(--line);border-radius:6px;background:var(--white);color:var(--ink);padding:10px 17px;font-size:13px;font-weight:650;text-decoration:none;line-height:1.5}.button.primary{background:var(--green);border-color:var(--green);color:white}.button:hover{filter:brightness(.96)}.button:disabled,.button[aria-disabled="true"]{opacity:.45;cursor:default}.hero-structure{padding:24px 21px;background:#edf0e8;border:1px solid var(--line);border-radius:var(--radius);position:relative}.hero-structure .label{font:10px var(--mono);letter-spacing:.1em;color:var(--muted);margin-bottom:20px}.stack-layer{border:1px solid #becbbf;background:var(--white);padding:11px 14px;margin:7px 0;display:flex;justify-content:space-between;gap:10px;font:12px var(--mono);border-radius:5px}.stack-layer.top{background:var(--green);color:white;border-color:var(--green)}.stack-layer i{font-style:normal;font-size:10px;opacity:.7}.stack-bottom{font:11px var(--mono);text-align:center;margin-top:13px;color:var(--muted)}.hero-meta{border-top:1px solid var(--line);padding:13px 0;display:flex;flex-wrap:wrap;gap:8px 25px;font-size:11px;color:var(--muted)}.roadmap{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin-top:27px;border:1px solid var(--line);border-radius:8px;overflow:hidden}.roadmap a{padding:16px 12px;text-decoration:none;border-right:1px solid var(--line);line-height:1.5}.roadmap a:last-child{border:0;background:#f0f0ec}.roadmap a:hover{background:var(--mint)}.roadmap .num{font:11px var(--mono);display:block;color:var(--orange);margin-bottom:10px}.roadmap b{font-size:13px;display:block}.roadmap small{font-size:10px;color:var(--muted)}.section{padding:65px 0;border-top:1px solid var(--line);scroll-margin-top:96px}.section.intro{margin-top:50px}.section-head{display:flex;gap:22px;align-items:flex-start;margin-bottom:26px}.section-no{font:300 56px/1 var(--mono);letter-spacing:-5px;color:#87968b;min-width:62px}.section-kicker{font:11px var(--mono);color:var(--green);letter-spacing:.08em;margin-bottom:9px}.tag{display:inline-block;font:11px/1.5 var(--sans);letter-spacing:0;background:var(--mint);border:1px solid #c4d5c4;border-radius:30px;padding:2px 8px;margin-left:8px;vertical-align:middle;color:var(--green)}.tag.future{color:var(--muted);background:#eeeeea;border-color:var(--line)}.lead{font-size:18px;color:var(--muted);max-width:780px;margin-bottom:25px}.question{font-size:21px;font-weight:650;border-left:3px solid var(--orange);padding:8px 0 8px 19px;margin:25px 0}.pair>*,.sources>*,.arch-path{min-width:0}.pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:22px 0}.explain{padding:24px;background:var(--white);border:1px solid var(--line);border-radius:8px}.explain h3,.explain h4{margin-bottom:13px}.caption{font:11px var(--mono);letter-spacing:.08em;color:var(--muted);margin-bottom:12px}.codebox{background:var(--code);color:var(--code-ink);border-radius:8px;overflow:hidden;min-width:0}.codebox .code-label{padding:10px 17px;border-bottom:1px solid #42514a;color:#b7c8ba;font:11px var(--mono)}.codebox pre{padding:18px}.codebox p{padding:14px 18px;font-size:12px;color:#c8d3c8}.flow-strip{display:flex;align-items:center;gap:10px;padding:20px;background:var(--mint);border:1px solid #cfdbcd;border-radius:8px;margin:22px 0;font-size:12px;flex-wrap:wrap}.flow-strip b{border:1px solid #b5c8b8;border-radius:5px;padding:8px 12px;background:white}.flow-strip span{color:var(--green)}.difference{padding:22px 24px;border:1px solid #e7d1bf;background:#faf0e6;border-radius:8px;margin:24px 0}.difference h4{font-size:15px;color:#7c3f24;margin-bottom:10px}.difference p,.difference li{font-size:14px}.source-links{font-size:12px;display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:18px}.next-link{display:flex;justify-content:space-between;gap:20px;align-items:center;border-top:1px dashed #bfcabf;padding-top:19px;margin-top:28px;font-size:13px;color:var(--muted)}.next-link a{flex-shrink:0;font-weight:650}.note{border-left:3px solid #95ad97;padding:12px 18px;background:#edf1e9;font-size:14px;margin:20px 0}.table-wrap{max-width:100%;overflow:auto;margin:22px 0;border:1px solid var(--line);border-radius:8px;background:white}.table-wrap:focus-visible{outline-offset:-3px}table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.7}th,td{padding:13px 16px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}th{font-size:11px;font-weight:650;background:#eef1ea;white-space:nowrap}tbody tr:last-child td{border-bottom:0}details{margin-top:18px;border:1px solid var(--line);border-radius:8px;background:white;overflow:hidden}summary{padding:15px 20px;font-size:14px;font-weight:650}details .detail-body{padding:0 20px 20px;font-size:14px}details .codebox{margin:0 15px 15px}.architecture{padding:25px;border:1px solid var(--line);border-radius:10px;background:white;margin:25px 0}.arch-paths{display:grid;grid-template-columns:1fr 1fr;gap:20px}.arch-path{text-align:center;border:1px solid var(--line);padding:18px;border-radius:7px}.arch-path strong{display:block;font:14px var(--mono)}.arch-path small{display:block;color:var(--muted);margin-top:8px}.arch-shared{margin-top:15px;text-align:center;background:var(--mint);border:1px solid #bcd0bd;border-radius:5px;padding:12px;font-size:13px}.arch-tx{border:1px dashed var(--green);padding:16px;border-radius:8px}.arch-tx>.caption{color:var(--green)}.lab{margin:30px 0;background:white;border:1px solid #b9cabd;border-radius:12px;overflow:hidden;scroll-margin-top:96px}.lab-heading{background:var(--green);color:#fff;padding:25px 28px}.lab-heading .caption{color:#ccdccf;margin-bottom:9px}.lab-heading h3{font-size:26px}.lab-heading p{font-size:13px;color:#d3e2d5;margin-top:9px}.scenario-bar{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;gap:10px}.scenario-bar label{font-size:12px;font-weight:650}.scenario-bar select{min-width:0;max-width:100%;padding:7px 28px 7px 10px;border:1px solid #b8c7ba;border-radius:5px;background:white;color:var(--ink);font-size:13px}.lab-scene{padding:20px 24px 14px;min-height:116px}.scene-count{font:11px var(--mono);color:var(--orange);display:block;margin-bottom:6px}.lab-scene h4{font-size:20px;letter-spacing:-.03em}.lab-scene p{font-size:13px;color:var(--muted);margin-top:9px}.lab-grid{display:grid;grid-template-columns:1fr 1.08fr;padding:0 20px;gap:14px}.diagram-panel{background:#f5f7f1;border:1px solid var(--line);border-radius:8px;padding:15px;min-width:0}.diagram-panel>.caption{margin-bottom:5px}.graph{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:37px 15px;padding:24px 0 18px;min-height:220px;align-content:center}.graph svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}.graph-node{z-index:1;position:relative;min-width:0;border:1px solid #bdcbbc;border-radius:6px;background:#fff;text-align:center;padding:12px 4px;transition:background .22s,border-color .22s,transform .22s;line-height:1.6;align-self:center}.graph-node strong{font-size:12px;display:block;overflow-wrap:anywhere;word-break:normal}.graph-node small{font:10px/1.6 var(--mono);color:var(--muted);display:block}.graph-node.active{background:#dbe9d6;border:2px solid var(--green);padding:11px 3px;transform:translateY(-2px)}.graph-node.active:before{content:"현재";position:absolute;top:-18px;left:0;font-size:9px;color:var(--green)}.graph .flow-path{fill:none;stroke:var(--orange);stroke-width:2}.flow-dot{fill:var(--orange)}.diagram-note{font-size:11px;line-height:1.7;color:var(--muted);min-height:38px}.scene-code{background:var(--code);border-radius:8px;color:var(--code-ink);overflow:hidden;min-width:0;align-self:stretch}.scene-code .caption{color:#c6d2c4;padding:13px 15px;margin:0;border-bottom:1px solid #42514a;font-size:10px}.scene-code pre{padding:12px 0;min-height:226px;font-size:12px;line-height:1.95}.code-line{display:block;padding:0 13px;border-left:3px solid transparent}.code-line.active{border-color:#f1b38b;background:#435c46;color:#fff}.line-no{display:inline-block;width:25px;color:#aebfac;font-size:10px;user-select:none}.values{margin:14px 20px 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--line);border-radius:7px;background:#f8f9f5}.value{padding:11px 13px;min-width:0;border-right:1px solid var(--line)}.value:last-child{border:0}.value dt{font-size:10px;color:var(--muted);margin:0 0 4px}.value dd{font:12px/1.75 var(--mono);margin:0;overflow-wrap:anywhere;word-break:normal}.balance{margin:14px 20px 0;display:grid;grid-template-columns:1fr 1fr;gap:12px}.account{border:1px solid var(--line);background:#f5f6f1;padding:10px 15px;border-radius:7px;font-size:12px;display:flex;justify-content:space-between;align-items:center}.account strong{font:600 25px var(--mono)}.account.changed{background:var(--peach);border-color:#ddad90}.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:16px 20px}.controls .button{padding:8px 11px;font-size:12px;min-height:38px}.controls label{margin-left:auto;font-size:11px}.controls select{border:1px solid #b8c7ba;border-radius:4px;padding:5px;color:var(--ink);background:white;font-size:12px;min-height:36px}.play-state{font:11px var(--mono);color:var(--muted);padding:0 21px 13px;min-height:30px}.step-progress{height:3px;background:#e4eae0}.step-progress span{display:block;height:100%;background:var(--orange);transition:width .2s}.lab-foot{background:#f2f4ed;padding:12px 22px;font-size:11px;color:var(--muted);border-top:1px solid var(--line)}.static-steps{margin:18px 20px 20px}.static-steps .detail-body{font-size:13px}.static-steps li{padding:3px 0}.lab .motion-note{font-size:11px;margin:0 20px 14px;color:var(--muted)}.ecosystem-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:23px 0}.eco{border:1px solid var(--line);border-radius:8px;padding:22px;background:white}.eco .caption{color:var(--orange)}.eco h3{font-size:19px;margin-bottom:12px}.eco p{font-size:14px}.eco .chain{font:12px/1.8 var(--mono);padding-top:12px;margin-top:13px;border-top:1px solid var(--line);color:var(--green)}.sources{display:grid;grid-template-columns:1fr 1fr;gap:20px}.sources h3{font-size:17px;margin-bottom:13px}.sources a{font-size:13px}.sources ul{list-style:none;padding:0}.sources li{padding:6px 0;border-bottom:1px solid var(--line)}footer{padding:30px 0 45px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;display:flex;justify-content:space-between;gap:20px}.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}[hidden]{display:none!important}.js-only{display:none}.js-ready .js-only{display:block}.js-ready .scenario-bar,.js-ready .controls{display:flex}.no-js-note{padding:20px;border-bottom:1px solid var(--line);font-size:13px}.js-ready .no-js-note{display:none}
 @media(min-width:1500px){.layout{gap:60px}}@media(max-width:1150px){.layout{grid-template-columns:160px minmax(0,1fr);gap:27px;padding:0 3vw}.hero{grid-template-columns:1fr}.hero-structure{display:none}.lab-grid{grid-template-columns:1fr}.graph{min-height:210px;gap:40px 25px}.scene-code pre{min-height:unset;font-size:13px}.sidebar a{padding-left:10px}.sidebar .sub{padding-left:25px}.roadmap a{padding:14px 8px}.pair{gap:12px}.explain{padding:18px}}
 @media(max-width:760px){html{scroll-padding-top:0}.topbar{height:60px;padding:0 20px}.top-note{display:none}.brand{font-size:19px}.layout{display:block;padding:0 22px}.sidebar{display:none}.mobile-nav{display:block;position:sticky;top:60px;z-index:4;background:var(--paper);border-bottom:1px solid var(--line);margin:0;border-radius:0}.mobile-nav summary{padding:10px 22px;font-size:12px}.mobile-nav nav{padding:0 22px 15px;max-height:60vh;overflow:auto}.mobile-nav a{display:block;padding:7px;font-size:13px}.hero{padding:40px 0 28px;gap:0}.hero p{font-size:15px;margin:20px 0}.eyebrow{font-size:10px;letter-spacing:.06em;margin-bottom:18px}.hero-meta{font-size:10px;gap:6px 16px}.roadmap{grid-template-columns:repeat(5,minmax(0,1fr));margin-top:20px}.roadmap a{padding:13px 5px;text-align:center}.roadmap b{font-size:10px;word-break:normal;overflow-wrap:anywhere}.roadmap .num{margin-bottom:7px}.roadmap small{font-size:9px}.section{padding:42px 0;scroll-margin-top:125px}.section.intro{margin-top:35px}.section-head{gap:15px;margin-bottom:20px}.section-no{font-size:42px;min-width:44px;letter-spacing:-3px}.section-kicker{font-size:10px;line-height:1.6}.lead{font-size:16px}.question{font-size:18px;margin:22px 0}.pair,.ecosystem-grid,.sources{grid-template-columns:1fr}.explain,.difference{padding:20px}.next-link{align-items:flex-start;flex-direction:column;gap:9px}.flow-strip{padding:15px;gap:8px}.flow-strip b{padding:7px 9px;font-size:11px}.architecture{padding:16px}.arch-tx{padding:12px}.arch-paths{grid-template-columns:1fr;gap:10px}.arch-path{padding:12px}.arch-path strong{font-size:12px}.lab{margin:25px -6px;scroll-margin-top:125px}.lab-heading{padding:22px 19px}.lab-heading h3{font-size:23px}.scenario-bar{padding:13px 15px;gap:5px}.scenario-bar label{width:100%}.scenario-bar select{width:100%;font-size:12px;padding:8px}.lab-scene{padding:18px 16px;min-height:140px}.lab-scene h4{font-size:18px}.lab-grid{padding:0 12px;gap:12px}.diagram-panel{padding:13px}.graph{grid-template-columns:1fr;gap:20px;padding:20px 30px;min-height:0}.graph-node{padding:9px 12px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px}.graph-node.active{padding:8px 11px;transform:none}.graph-node.active:before{top:-15px;font-size:9px}.graph-node strong{font-size:12px}.graph-node small{font-size:10px}.scene-code pre{font-size:12px}.values{grid-template-columns:1fr;margin:12px 12px 0}.value{border-right:0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:90px minmax(0,1fr);gap:10px;padding:9px 11px}.value dt{font-size:10px}.value dd{font-size:11px}.balance{margin:12px 12px 0;gap:8px}.account{padding:9px 10px;display:block}.account strong{display:block;font-size:24px}.controls{padding:14px 12px;gap:7px}.controls .button{font-size:11px;padding:8px 10px}.controls label{margin-left:0}.play-state{padding-left:14px;font-size:10px}.static-steps{margin:12px}.lab-foot{padding:12px 15px}.table-wrap{font-size:12px}.table-wrap table{min-width:540px}.table-wrap td,.table-wrap th{padding:11px 12px}pre{font-size:12px}.codebox pre{padding:15px}footer{display:block;line-height:1.8}.tag{font-size:10px;margin-left:4px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation:none!important;transition:none!important}.flow-dot{display:none}}
 @media print{.topbar,.sidebar,.mobile-nav,.controls,.scenario-bar,.hero-actions{display:none!important}.layout{display:block;padding:0}.section{break-before:auto;padding:20px 0}.hero{padding:20px 0}.lab{break-inside:avoid}.js-only{display:none!important}details .detail-body{display:block}body{background:white;font-size:11pt}h1{font-size:35pt}}
 </style>
 </head>
-<body>
-<a class="skip" href="#main">본문으로 이동</a>
-<header class="topbar"><a class="brand" href="#intro">simple<span>-</span>jorm<span>.</span></a><span class="top-note">JAVA DATA ACCESS / IMPLEMENTATION NOTES</span><a class="top-link" href="#proxy-lab">프록시 실험실 ↗</a></header>
-<details class="mobile-nav"><summary>목차 · <span id="mobile-current">시작하기</span></summary><nav aria-label="모바일 목차"><a href="#intro">시작하기</a><a href="#jdbc">01 JDBC와 행 매핑</a><a href="#mapper">02 SQL Mapper</a><a href="#proxy-lab">↳ JDK 프록시 실험실</a><a href="#transaction">03 트랜잭션</a><a href="#transaction-lab">↳ 자기 호출 실험실</a><a href="#entity">04 엔티티 CRUD</a><a href="#next">05 영속성 컨텍스트</a><a href="#ecosystem">Java 생태계 지도</a><a href="#experiment">매핑 비용 실험</a><a href="#references">문서와 출처</a></nav></details>
-<div class="layout">
-<aside class="sidebar"><p>THE LEARNING PATH</p><nav aria-label="학습 목차"><a href="#intro" class="current">시작하기</a><a href="#jdbc"><em>01</em>JDBC와 행 매핑</a><a href="#mapper"><em>02</em>SQL Mapper</a><a class="sub" href="#proxy-lab">↳ JDK 프록시 실험실</a><a href="#transaction"><em>03</em>트랜잭션</a><a class="sub" href="#transaction-lab">↳ 자기 호출 실험실</a><a href="#entity"><em>04</em>엔티티 CRUD</a><a href="#next"><em>05</em>영속성 컨텍스트</a><a href="#ecosystem">Java 생태계 지도</a><a href="#experiment">매핑 비용 실험</a><a href="#references">문서와 출처</a></nav><div class="side-foot">직접 만든 코드를 통해<br>익숙한 프레임워크의<br>안쪽을 살펴봅니다.<br><br>기준: Java 21<br>2026. 11. 03</div></aside>
-<main id="main">
-<section id="intro" aria-labelledby="hero-title" style="scroll-margin-top:96px">
-<div class="hero"><div><div class="eyebrow">BUILD IT TO UNDERSTAND IT</div><h1 id="hero-title">ORM은 어떻게<br><em>만들어질까.</em></h1><p>SQL을 직접 실행하던 코드가 메서드 호출이 되고,<br>마침내 객체를 저장하는 코드가 되기까지.<br>simple-jorm의 구현을 따라 Java 데이터 접근의 내부를 살펴봅니다.</p><div class="hero-actions"><a class="button primary" href="#jdbc">첫 문제부터 읽기 <span aria-hidden="true">↓</span></a><a class="button" href="#proxy-lab">호출 한 번 따라가기 ↗</a></div></div><div class="hero-structure" aria-label="데이터 접근 구조 미리보기"><div class="label">ONE CALL, SEVERAL LAYERS</div><div class="stack-layer top">application <i>업무 코드</i></div><div class="stack-layer">mapper / entity manager <i>접근 방식</i></div><div class="stack-layer">transaction manager <i>실행 경계</i></div><div class="stack-layer">jdbc template <i>SQL 실행</i></div><div class="stack-layer">jdbc driver → database <i>DB 통신</i></div><div class="stack-bottom">각 계층은 어떤 반복과 문제를 해결할까?</div></div></div>
-<div class="hero-meta"><span>대상 · Java 문법과 기본 SQL을 아는 학습자</span><span>구현 · 01–04 완료 / 05 예정</span><span>파일 하나로 오프라인 열람</span></div>
-<nav class="roadmap" aria-label="단계별 학습 지도"><a href="#jdbc"><span class="num">01 →</span><b>JDBC</b><small>실행과 변환</small></a><a href="#mapper"><span class="num">02 →</span><b>Mapper</b><small>호출과 SQL</small></a><a href="#transaction"><span class="num">03 →</span><b>Transaction</b><small>함께 성공하기</small></a><a href="#entity"><span class="num">04 →</span><b>Entity CRUD</b><small>객체에서 SQL로</small></a><a href="#next"><span class="num">05 · NEXT</span><b>Context</b><small>객체 상태 관리</small></a></nav>
-<div class="section intro"><div class="section-kicker">먼저, 이 프로젝트의 위치</div><h2>사용법보다, 동작하는 이유.</h2><p class="lead" style="margin-top:20px">“어노테이션 하나면 된다”의 안쪽에는 누군가 작성한 실행 코드가 있습니다. 이 프로젝트는 그 역할을 작은 단위로 직접 구현한 학습용 라이브러리입니다.</p><p>Spring이나 Hibernate를 프로덕션 코드에서 호출하지 않고 JDBC·리플렉션·JDK 동적 프록시를 사용합니다. 여기서 만든 <code>EntityManager</code>는 자체 API이며 JPA 표준 구현체는 아닙니다. 아래의 기술 대응은 <strong>비슷한 역할을 배운다는 의미</strong>입니다.</p><div class="note"><strong>읽는 법.</strong> 각 단계의 질문부터 읽고, 실행 그림과 짧은 코드를 확인하세요. 주황색 비교 상자에는 실제 라이브러리와의 차이를, 단계 끝에는 아직 해결하지 못한 문제를 적었습니다.</div></div>
-</section>
+<body><a class="skip" href="#main">본문으로 이동</a><header class="topbar"><a class="brand" href="#intro">ORM<span>.</span>inside</a><span class="top-note">JAVA DATA ACCESS / HOW IT WORKS</span><a class="top-link" href="#proxy-lab">프록시 실험실 ↗</a></header><details class="mobile-nav"><summary>목차 · <span id="mobile-current">시작하기</span></summary><nav aria-label="모바일 목차"><a href="#intro">시작하기</a><a href="#jdbc">01 Spring JDBC</a><a href="#mapper">02 MyBatis Mapper</a><a href="#proxy-lab">↳ Mapper 프록시 실험실</a><a href="#transaction">03 Spring 트랜잭션</a><a href="#transaction-lab">↳ 자기 호출 실험실</a><a href="#entity">04 JPA 매핑</a><a href="#next">05 영속성 컨텍스트</a><a href="#ecosystem">Java 생태계 지도</a><a href="#experiment">매핑 비용 이해하기</a><a href="#references">공식 문서와 소스</a></nav></details><div class="layout"><aside class="sidebar"><p>THE LEARNING PATH</p><nav aria-label="학습 목차"><a href="#intro">시작하기</a><a href="#jdbc">01 Spring JDBC</a><a href="#mapper">02 MyBatis Mapper</a><a href="#proxy-lab">↳ Mapper 프록시 실험실</a><a href="#transaction">03 Spring 트랜잭션</a><a href="#transaction-lab">↳ 자기 호출 실험실</a><a href="#entity">04 JPA 매핑</a><a href="#next">05 영속성 컨텍스트</a><a href="#ecosystem">Java 생태계 지도</a><a href="#experiment">매핑 비용 이해하기</a><a href="#references">공식 문서와 소스</a></nav><div class="side-foot">익숙한 API 뒤에서<br>누가 SQL을 실행하고<br>객체를 관리할까요?<br><br>Spring 6.2 · MyBatis 3<br>Jakarta Persistence 3.2</div></aside><main id="main"><section id="intro" aria-labelledby="hero-title" style="scroll-margin-top:96px"><div class="hero"><div><div class="eyebrow">FOLLOW THE CALL, UNDERSTAND THE LAYERS</div><h1 id="hero-title">ORM은 어떻게<br><em>동작할까.</em></h1><p>SQL 실행에서 메서드 호출로,<br>객체 매핑에서 상태 관리로.<br>Spring JDBC·MyBatis·JPA/Hibernate의 안쪽을 따라갑니다.</p><div class="hero-actions"><a class="button primary" href="#jdbc">첫 문제부터 읽기 ↓</a><a class="button" href="#proxy-lab">호출 한 번 따라가기 ↗</a></div></div><div class="hero-structure" aria-label="서로 다른 데이터 접근 경로"><div class="label">ONE DATABASE, DIFFERENT RESPONSIBILITIES</div><div class="stack-layer top">application <i>업무 코드</i></div><div class="stack-layer">Spring JDBC <i>SQL 실행·행 매핑</i></div><div class="stack-layer">MyBatis <i>SQL Mapper·결과 매핑</i></div><div class="stack-layer">JPA / Hibernate <i>객체 매핑·상태 관리</i></div><div class="stack-layer">JDBC driver → database <i>DB 통신</i></div><div class="stack-bottom">세 가지 접근 경로에 트랜잭션 경계를 더합니다.</div></div></div><div class="hero-meta"><span>대상 · Java 문법과 기본 SQL을 아는 학습자</span><span>다섯 단계 · 실제 기술의 역할과 실행 흐름</span><span>파일 하나로 오프라인 열람</span></div><nav class="roadmap" aria-label="단계별 학습 지도"><a href="#jdbc"><span class="num">01 →</span><b>JDBC</b><small>실행과 변환</small></a><a href="#mapper"><span class="num">02 →</span><b>MyBatis</b><small>호출과 SQL</small></a><a href="#transaction"><span class="num">03 →</span><b>Transaction</b><small>함께 성공하기</small></a><a href="#entity"><span class="num">04 →</span><b>JPA 매핑</b><small>객체에서 SQL로</small></a><a href="#next"><span class="num">05 →</span><b>Context</b><small>객체 상태 관리</small></a></nav><div class="section intro"><div class="section-kicker">먼저, 역할을 구분하기</div><h2>사용법에서 한 걸음, 실행 원리로.</h2><p class="lead" style="margin-top:20px">어노테이션은 실행 코드가 아닙니다. 프레임워크가 읽는 메타데이터이며, 그 뒤에는 연결·SQL·객체 상태를 처리하는 코드가 있습니다.</p><p>JDBC는 DB 연결 API, Spring JDBC는 반복 실행 절차, MyBatis는 SQL과 메서드·결과의 매핑을 맡습니다. JPA는 객체 영속화 표준이며 Hibernate ORM은 그 구현체입니다. Spring 트랜잭션은 여러 작업의 성공과 실패를 하나의 경계로 묶습니다.</p><div class="note"><strong>읽는 법.</strong> 단계별 질문과 코드, 실행 그림을 차례로 보세요. 예제는 전제 조건을 줄인 교육용 코드입니다. 내부 흐름의 의사 코드는 실제 라이브러리 소스와 구분해 표시하고, 단계 끝에서 공식 문서와 소스로 연결합니다.</div></div></section>
 
-<section class="section" id="jdbc" aria-labelledby="jdbc-title"><div class="section-head"><span class="section-no" aria-hidden="true">01</span><div><div class="section-kicker">1 / 5 · 먼저 알 것: SQL, 객체, 메서드 <span class="tag">구현 완료</span></div><h2 id="jdbc-title">SQL은 다르지만, 실행은 비슷하다.</h2></div></div>
-<p class="lead">사용자 한 명을 조회할 때마다 연결을 얻고, 문장을 준비하고, 값을 넣고, 결과를 읽고, 자원을 닫습니다. SQL이 바뀌어도 이 과정은 반복됩니다.</p><p class="question">“바뀌는 SQL과, 바뀌지 않는 실행 절차를 나눌 수 없을까?”</p>
-<div class="pair"><div class="codebox"><div class="code-label">BEFORE · 직접 JDBC — 설명용 축약</div><pre tabindex="0" aria-label="직접 JDBC 예제"><code>try (Connection c = source.getConnection();
+<section class="section" id="jdbc" aria-labelledby="jdbc-title"><div class="section-head"><span class="section-no" aria-hidden="true">01</span><div><div class="section-kicker">SPRING JDBC · 실행과 행 매핑</div><h2 id="jdbc-title">SQL은 다르지만, 실행은 비슷하다.</h2></div></div><p class="lead">사용자 한 명을 조회할 때마다 연결을 얻고, 문장을 준비하고, 값을 넣고, 결과를 읽고, 자원을 닫습니다. SQL이 바뀌어도 이 과정은 반복됩니다.</p><p class="question">“바뀌는 SQL과, 바뀌지 않는 실행 절차를 나눌 수 없을까?”</p><div class="pair"><div class="codebox"><div class="code-label">직접 JDBC · 실행과 변환을 함께 작성</div><pre tabindex="0" aria-label="직접 JDBC · 실행과 변환을 함께 작성"><code>try (Connection c = source.getConnection();
      PreparedStatement ps = c.prepareStatement(
-       "SELECT id, name FROM users WHERE id = ?")) {
-  ps.setObject(1, 1L);
+       &quot;SELECT id, name FROM users WHERE id = ?&quot;)) {
+  ps.setLong(1, 1L);
   try (ResultSet rs = ps.executeQuery()) {
-    if (rs.next()) {
-      User user = new User();
-      user.id = rs.getLong("id");
-      user.name = rs.getString("name");
+    while (rs.next()) {
+      // 결과 한 행을 User로 변환
     }
   }
-}</code></pre></div><div class="codebox"><div class="code-label">AFTER · 실행과 한 행 변환 분리</div><pre tabindex="0" aria-label="JdbcTemplate 예제"><code>User user = jdbc.queryForObject(
-  "SELECT id, name FROM users WHERE id = ?",
-  (rs, rowNum) -> {
+}</code></pre></div><div class="codebox"><div class="code-label">Spring JdbcTemplate · 콜백으로 한 행 변환</div><pre tabindex="0" aria-label="Spring JdbcTemplate · 콜백으로 한 행 변환"><code>JdbcTemplate jdbc = new JdbcTemplate(source);
+User user = jdbc.queryForObject(
+  &quot;SELECT id, name FROM users WHERE id = ?&quot;,
+  (rs, rowNum) -&gt; {
     User u = new User();
-    u.id = rs.getLong("id");
-    u.name = rs.getString("name");
+    u.setId(rs.getLong(&quot;id&quot;));
+    u.setName(rs.getString(&quot;name&quot;));
     return u;
-  },
-  1L
-);</code></pre><p>SQL과 변환 방법을 넘기면 나머지는 템플릿이 처리합니다.</p></div></div>
-<div class="flow-strip" aria-label="JDBC 실행 순서"><b>호출 코드</b><span>→</span><b>JdbcTemplate</b><span>→</span><b>Connection · PreparedStatement</b><span>→</span><b>ResultSet</b><span>→</span><b>RowMapper → User</b></div>
-<div class="pair"><div class="explain"><div class="caption">EXECUTION</div><h3>템플릿은 실행 절차를 맡는다.</h3><p><code>JdbcTemplate</code>이 연결 획득, <code>?</code>의 순서별 바인딩, 실행과 자원 정리를 맡습니다. 조회 시 커서를 다음 행으로 이동시키는 것도 템플릿의 책임입니다.</p></div><div class="explain"><div class="caption">MAPPING</div><h3>매퍼는 한 행을 객체로 바꾼다.</h3><p><code>RowMapper</code>는 변환 콜백입니다. 자동 매퍼는 기본 생성자와 public setter를 찾고, setter가 없으면 선언 필드에 대입합니다. 조회별 <code>prepare()</code>에서 컬럼 순서의 프로퍼티 배열을 준비해 재사용합니다.</p></div></div>
-<div class="difference"><h4>실제 Spring JDBC와 어디가 다를까?</h4><p>반복 실행을 템플릿에 모은다는 역할은 같습니다. 자체 구현은 <code>SQLException</code>을 전달하지만 Spring은 이를 <code>DataAccessException</code> 계층으로 변환합니다. 자체 단건 조회는 결과가 없으면 <code>null</code>, 여러 행이면 첫 행을 반환합니다. Spring의 일반적인 <code>queryForObject</code>는 정확히 한 행을 요구합니다.</p><p>자체 자동 매퍼도 JavaBean setter와 snake_case 이름 연결을 지원합니다. 숫자는 값이 정확히 보존되는 경우만 변환하고 JDBC 날짜·시간의 기본 변환을 제공합니다. Spring의 <code>ConversionService</code>, primitive NULL 기본값 옵션, 전체 프로퍼티 조회 검증은 없습니다. 필드 fallback은 자체 확장이며 상속 필드 직접 매핑은 지원하지 않습니다.</p></div>
-<details><summary>자동 매핑에서 이름이 중요한 이유</summary><div class="detail-body"><p>이 단계의 <code>BeanPropertyRowMapper</code>는 컬럼 <em>라벨</em>을 대소문자 구분 없이 연결합니다. <code>user_name</code>은 <code>setUserName(...)</code> 또는 <code>userName</code> 필드와 연결됩니다. 이름이 다른 <code>name</code>에 넣으려면 <code>SELECT user_name AS name ...</code>처럼 별칭을 사용합니다. 엔티티 단계의 자체 <code>@Column</code>은 여기서 해석하지 않습니다.</p><p>SQL NULL은 참조 타입에 전달하며 primitive에서는 실패합니다. 조회 결과가 비어 있으면 목록 조회는 빈 리스트를 반환합니다. <code>update()</code>는 INSERT·UPDATE·DELETE의 변경 행 수를 반환합니다.</p></div></details>
-<div class="source-links"><a href="https://github.com/whoisyourbias/simple-jorm/blob/4a97101803756b08a0b91aeb454c16ca74bd0ae6/doc/01-jdbc/01-jdbc-and-row-mapping.md">단계 문서 ↗</a><a href="https://github.com/whoisyourbias/simple-jorm/blob/4a97101803756b08a0b91aeb454c16ca74bd0ae6/src/main/java/com/jorm/jdbc/JdbcTemplate.java">소스 · JdbcTemplate ↗</a><a href="https://docs.spring.io/spring-framework/reference/data-access/jdbc/core.html">공식 · Spring JDBC ↗</a><a href="https://docs.spring.io/spring-framework/docs/6.2.x/javadoc-api/org/springframework/jdbc/core/JdbcTemplate.html">공식 · 단건 조회 계약 ↗</a><a href="https://docs.spring.io/spring-framework/docs/6.2.x/javadoc-api/org/springframework/jdbc/core/BeanPropertyRowMapper.html">공식 · 자동 매퍼 ↗</a></div>
-<div class="next-link"><span>실행의 반복은 줄었지만, 호출 코드에는 여전히 SQL 문자열이 흩어져 있습니다.</span><a href="#mapper">메서드에 SQL 연결하기 →</a></div></section>
+  }, 1L
+);</code></pre></div></div><div class="flow-strip"><b>JdbcTemplate</b><span>→</span><b>DataSourceUtils · Connection</b><span>→</span><b>PreparedStatement · ResultSet</b><span>→</span><b>RowMapper → User</b></div><div class="pair"><div class="explain"><div class="caption">EXECUTION</div><h3>템플릿은 자원과 예외를 관리한다.</h3><p><code>JdbcTemplate</code>이 SQL 실행, ResultSet 반복, 문장과 결과의 정리를 맡습니다. <code>DataSourceUtils</code>를 통해 Spring 트랜잭션에 묶인 연결을 재사용하고, 그 연결의 실제 종료는 트랜잭션 경계까지 미룹니다.</p><p>JDBC의 checked <code>SQLException</code>은 <code>SQLExceptionTranslator</code>가 unchecked <code>DataAccessException</code> 계층으로 바꿉니다.</p></div><div class="explain"><div class="caption">MAPPING</div><h3>BeanPropertyRowMapper는 setter로 쓴다.</h3><p>기본 생성자로 객체를 만들고 컬럼 라벨을 public setter의 프로퍼티명에 연결합니다. <code>first_name</code>은 <code>setFirstName(...)</code>과 연결됩니다. 필드에 직접 쓰는 매퍼로 이해하면 안 됩니다.</p><p><code>BeanWrapper</code>와 <code>ConversionService</code>가 JDBC 값과 프로퍼티 타입을 연결합니다. 기본 변환 서비스는 Java 시간 타입 등도 처리하며, 사용자 변환 서비스도 지정할 수 있습니다.</p></div></div><div class="difference"><h4>단건 조회는 “정확히 한 행”이라는 계약이다.</h4><p><code>queryForObject</code>는 0행이면 <code>EmptyResultDataAccessException</code>, 여러 행이면 <code>IncorrectResultSizeDataAccessException</code>을 던집니다. 한 행의 SQL NULL이나 매퍼 반환값이 null인 경우와 “결과 행이 없음”은 다릅니다.</p></div><details><summary>이름·NULL·생성자를 확인하세요</summary><div class="detail-body"><p>이름이 다르면 <code>SELECT fname AS first_name ...</code>처럼 별칭을 사용합니다. <code>BeanPropertyRowMapper</code>는 JPA의 <code>@Column</code>을 해석하는 매퍼가 아닙니다.</p><p>DB NULL을 primitive setter에 넣으면 기본적으로 타입 오류입니다. <code>primitivesDefaultedForNullValue</code>로 해당 대입을 무시할 수 있습니다. record나 생성자 기반 객체는 <code>DataClassRowMapper</code>를 살펴보세요.</p></div></details><div class="source-links"><a href="https://docs.spring.io/spring-framework/docs/6.2.12/javadoc-api/org/springframework/jdbc/core/JdbcTemplate.html">API · JdbcTemplate 6.2.12 ↗</a><a href="https://docs.spring.io/spring-framework/docs/6.2.12/javadoc-api/org/springframework/jdbc/core/BeanPropertyRowMapper.html">API · BeanPropertyRowMapper ↗</a><a href="https://github.com/spring-projects/spring-framework/blob/v6.2.12/spring-jdbc/src/main/java/org/springframework/jdbc/core/JdbcTemplate.java">소스 · JDBC 실행과 예외 변환 ↗</a></div><div class="next-link"><span>반복 실행은 줄었습니다. SQL과 호출 메서드를 함께 선언하면 어떨까요?</span><a href="#mapper">메서드에 SQL 연결하기 →</a></div></section>
 
-<section class="section" id="mapper" aria-labelledby="mapper-title"><div class="section-head"><span class="section-no" aria-hidden="true">02</span><div><div class="section-kicker">2 / 5 · 먼저 알 것: 인터페이스, 리플렉션 <span class="tag">구현 완료</span></div><h2 id="mapper-title">메서드를 호출했는데, SQL이 실행된다.</h2></div></div>
-<p class="lead">호출자는 <code>findById(1L)</code>만 호출합니다. SQL과 실행 방식은 Mapper 인터페이스 뒤로 옮겼습니다. 그런데 그 인터페이스의 구현 클래스는 직접 작성하지 않았습니다.</p><div class="pair"><div class="codebox"><div class="code-label">선언 · com.jorm.mapper.Select</div><pre tabindex="0" aria-label="Mapper 선언"><code>public interface UserMapper {
-  @Select("SELECT id, name FROM users WHERE id = ?")
-  User findById(Long id) throws SQLException;
+<section class="section" id="mapper" aria-labelledby="mapper-title"><div class="section-head"><span class="section-no" aria-hidden="true">02</span><div><div class="section-kicker">MYBATIS · SQL 매핑과 프록시</div><h2 id="mapper-title">메서드를 호출했는데, SQL이 실행된다.</h2></div></div><p class="lead">호출자는 <code>findById(1L)</code>만 호출합니다. MyBatis는 Mapper 인터페이스와 등록된 SQL을 연결하고, JDBC 결과를 객체로 매핑합니다.</p><div class="pair"><div class="codebox"><div class="code-label">MyBatis · org.apache.ibatis.annotations</div><pre tabindex="0" aria-label="MyBatis · org.apache.ibatis.annotations"><code>public interface UserMapper {
+  @Select(&quot;SELECT id, name FROM users WHERE id = #{id}&quot;)
+  User findById(@Param(&quot;id&quot;) Long id);
+
+  default User first() {
+    return findById(1L);
+  }
 }
 
-UserMapper mapper = MapperFactory.create(
-  UserMapper.class, jdbc
-);
-User user = mapper.findById(1L);</code></pre></div><div class="explain"><div class="caption">THE MISSING IMPLEMENTATION</div><h3>구현 객체를 JDK가 만든다.</h3><p>JDK 동적 프록시는 지정한 인터페이스를 구현하는 객체를 런타임에 만듭니다. 메서드 호출은 연결해 둔 <code>InvocationHandler</code>의 <code>invoke()</code>로 전달됩니다.</p><p>핸들러 안의 <strong>직접 작성한 코드</strong>가 어노테이션을 읽고 JDBC 실행기로 연결합니다. 어노테이션 자체가 SQL을 실행하는 것은 아닙니다.</p></div></div>
-<div class="note"><strong>세 단어를 먼저 구분하세요.</strong> <code>UserMapper.class</code>는 인터페이스 타입 정보, <code>mapper</code>는 생성된 프록시 객체, <code>handler</code>는 호출을 해석하고 실행하는 객체입니다. <strong>Mapper</strong>는 SQL 호출 인터페이스, <strong>RowMapper</strong>는 결과 한 행의 변환 콜백입니다.</div>
+// 열린 SqlSession의 수명은 호출 측에서 관리
+UserMapper mapper = session.getMapper(UserMapper.class);
+User user = mapper.findById(1L);</code></pre></div><div class="explain"><div class="caption">CONFIGURATION → EXECUTION</div><h3>선언은 등록할 때, 호출은 실행할 때.</h3><p>XML이나 <code>@Select</code> 같은 선언은 설정 분석 과정에서 <code>MappedStatement</code>로 등록됩니다. 호출할 때마다 단순히 어노테이션에서 SQL 문자열을 꺼내 실행하는 구조가 아닙니다.</p><p><code>SqlSession.getMapper()</code>가 돌려주는 JDK 프록시에는 <code>MapperProxy</code>가 연결됩니다. 호출은 캐시된 메서드 실행기에서 <code>MapperMethod</code>를 거쳐 <code>SqlSession</code>으로 전달됩니다.</p></div></div><div class="flow-strip"><b>MapperProxy</b><span>→</span><b>캐시된 메서드 실행기</b><span>→</span><b>SqlSession → Executor</b><span>→</span><b>JDBC → ResultMap·TypeHandler</b></div><div class="note"><strong>Mapper와 RowMapper를 구분하세요.</strong> MyBatis Mapper는 SQL 호출 인터페이스입니다. Spring의 RowMapper는 JDBC 결과 한 행의 변환 콜백입니다. MyBatis는 Spring JdbcTemplate을 거치지 않고 자체 Executor·StatementHandler·ResultSetHandler 경로를 사용합니다.</div><div class="pair"><div class="codebox"><div class="code-label">이름 바인딩 · SQL의 순서와 인자 순서는 다를 수 있다</div><pre tabindex="0" aria-label="이름 바인딩 · SQL의 순서와 인자 순서는 다를 수 있다"><code>@Select(&quot;SELECT id, name FROM users &quot; +
+        &quot;WHERE name = #{name} AND id = #{id}&quot;)
+User find(@Param(&quot;id&quot;) Long id,
+          @Param(&quot;name&quot;) String name);
 
-<div class="pair"><div class="codebox"><div class="code-label">이름 바인딩 · 자체 @Param + default</div><pre tabindex="0" aria-label="Mapper 이름 바인딩과 default 메서드"><code>@Select("SELECT id, name FROM users " +
-        "WHERE name = #{name} AND id = #{id}")
-User find(@Param("id") Long id,
-          @Param("name") String name) throws SQLException;
+// SQL: ... WHERE name = ? AND id = ?
+// 바인딩 값: [&quot;Alice&quot;, 1L]
+mapper.find(1L, &quot;Alice&quot;);</code></pre></div><div class="explain"><div class="caption">PARAMETERS & DEFAULT METHODS</div><h3>이름은 파라미터를, default는 본문을 찾는다.</h3><p><code>@Param</code>은 인자의 명시적 이름을 만듭니다. <code>#{id}</code>는 JDBC 파라미터가 되고 <code>TypeHandler</code>가 값을 바인딩합니다. bean 속성이나 여러 파라미터도 매핑할 수 있습니다. <code>${...}</code>는 문자열 치환이므로 사용자 입력을 그대로 넣으면 SQL 삽입 위험이 있습니다.</p><p>default 메서드는 <code>DefaultMethodInvoker</code>의 <code>MethodHandle</code>로 본문을 실행합니다. 본문에서 다른 Mapper 메서드를 호출하면 프록시로 재진입합니다.</p></div></div><div class="lab" id="proxy-lab" data-lab="mapper" role="region" aria-labelledby="proxy-lab-title"><div class="lab-heading"><div class="caption">INTERACTIVE / MYBATIS MAPPER PROXY</div><h3 id="proxy-lab-title">호출 한 번을, 끝까지 따라가 보기.</h3><p>MyBatis의 실제 계층을 따라 ① 인자 · ② SQL · ③ 결과를 추적합니다. 캐시 적중이 없는 단순 조회를 가정합니다.</p></div><div class="no-js-note">JavaScript 없이도 아래 전체 실행 순서를 읽을 수 있습니다.</div><div class="scenario-bar js-only"><label for="mapper-scenario">비교할 호출 경로</label><select id="mapper-scenario" data-action="scenario"><option value="mapper">정상 조회 · findById(1L)</option><option value="missing">등록된 SQL이 없는 추상 메서드</option><option value="object">Object 메서드 · toString()</option><option value="default">default 메서드 · first()</option></select></div><div class="lab-dynamic js-only"></div><details class="static-steps" open><summary>전체 실행 순서 · 정적으로 읽기</summary><div class="detail-body"><ol><li>XML 또는 <code>@Select</code>를 분석해 <code>MappedStatement</code>를 등록합니다.</li><li><code>SqlSession.getMapper()</code>가 <code>MapperProxy</code>를 연결한 프록시를 반환합니다.</li><li><code>findById(1L)</code>은 <code>cachedInvoker(method)</code>를 통해 메서드 실행기로 전달됩니다.</li><li><code>MapperMethod</code>가 <code>@Param</code> 이름과 반환 타입에 맞춰 <code>SqlSession.selectOne()</code>을 호출합니다.</li><li><code>Executor</code>와 문장 처리기가 JDBC 실행을 준비하고, <code>TypeHandler</code>가 값을 바인딩합니다.</li><li>결과 처리기가 <code>ResultMap</code>과 <code>TypeHandler</code>로 행을 객체에 매핑하고 반환합니다.</li></ol><p>XML·어노테이션 어디에도 등록된 SQL이 없는 추상 메서드는 <code>BindingException</code>으로 실패합니다. 어노테이션이 없어도 XML 매핑이 있으면 실행할 수 있습니다. Object 메서드는 MapperProxy 자신에게 위임하며, default는 별도 본문 실행 경로를 사용합니다.</p></div></details><div class="lab-foot">공식 문서·소스를 바탕으로 계층을 생략한 교육용 시각화입니다. 표시 코드는 설명용 의사 코드이며 Java·DB를 브라우저에서 실행하지 않습니다.</div></div><details><summary>결과 매핑과 단건 반환은 어떻게 결정될까?</summary><div class="detail-body"><p><code>ResultMap</code>은 컬럼과 객체 프로퍼티·생성자·연관 결과의 매핑을 표현하고, TypeHandler는 Java와 JDBC 타입 사이의 값을 처리합니다. 자동 매핑도 설정할 수 있으며 <code>mapUnderscoreToCamelCase</code>는 기본 false입니다.</p><p><code>selectOne</code>은 0행이면 null, 2행 이상이면 <code>TooManyResultsException</code>입니다. Spring JDBC의 단건 조회와 계약이 다릅니다. 지연 로딩·캐시·플러그인이 있으면 실제 실행 경로와 SQL 시점도 달라질 수 있습니다.</p><p>프록시의 <code>toString()</code>은 MapperProxy의 Object 메서드를 호출한 결과입니다. 고정 문자열이나 SQL 조회 결과가 아닙니다.</p></div></details><div class="source-links"><a href="https://mybatis.org/mybatis-3/java-api.html">공식 · MyBatis Java API ↗</a><a href="https://mybatis.org/mybatis-3/sqlmap-xml.html">공식 · 파라미터·결과 매핑 ↗</a><a href="https://mybatis.org/mybatis-3/xref/org/apache/ibatis/binding/MapperProxy.html">공식 소스 · MapperProxy ↗</a><a href="https://mybatis.org/mybatis-3/xref/org/apache/ibatis/binding/MapperMethod.html">공식 소스 · MapperMethod ↗</a></div><div class="next-link"><span>SQL 두 개가 함께 성공해야 하는 송금은 어떻게 묶을까요?</span><a href="#transaction">성공과 실패를 묶기 →</a></div></section>
 
-default User first() throws SQLException {
-  return find(1L, "Alice");
-}</code></pre></div><div class="explain"><div class="caption">NAME → POSITION → JDBC</div><h3>이름으로 쓰고, 값은 따로 보낸다.</h3><p><code>find(1L, "Alice")</code>는 SQL의 이름 토큰을 <code>?</code>로 바꾸고 SQL 순서에 맞춰 <code>["Alice", 1L]</code>을 바인딩합니다. 같은 이름을 반복해도 각 위치에 전달하며 <code>null</code>도 유효한 값입니다. 기존 <code>?</code> SQL은 인자 순서대로 동작합니다.</p><p>이름 SQL의 모든 인자에는 고유한 <code>@Param</code>이 필요합니다. 알 수 없는 이름·중복 이름·위치 토큰 혼용은 실행 전에 거부합니다. <code>${...}</code> 문자열 치환은 지원하지 않습니다.</p><p><code>first()</code>는 JDK <code>InvocationHandler.invokeDefault</code>로 실행합니다. 본문의 <code>find(...)</code>도 같은 Mapper 프록시로 들어와 SQL을 실행합니다.</p></div></div>
+<section class="section" id="transaction" aria-labelledby="transaction-title"><div class="section-head"><span class="section-no" aria-hidden="true">03</span><div><div class="section-kicker">SPRING TRANSACTIONS · 프록시와 자원 경계</div><h2 id="transaction-title">두 번의 SQL, 하나의 성공.</h2></div></div><p class="lead">출금은 성공했는데 입금이 실패했습니다. 각각 확정되면 업무 일부만 반영됩니다. Spring의 선언적 트랜잭션은 프록시를 통과하는 업무 호출에 시작과 종료 경계를 더합니다.</p><div class="pair"><div class="codebox"><div class="code-label">Spring · 선언적 경계와 JdbcTemplate</div><pre tabindex="0" aria-label="Spring · 선언적 경계와 JdbcTemplate"><code>// Spring이 관리하는 Service bean의 메서드
+@Transactional
+public void transfer() {
+  jdbc.update(&quot;UPDATE accounts SET balance = balance - ?&quot;
+      + &quot; WHERE id = ?&quot;, 30, 1L);
+  jdbc.update(&quot;UPDATE accounts SET balance = balance + ?&quot;
+      + &quot; WHERE id = ?&quot;, 30, 2L);
+}
+// 같은 DataSource의 DataSourceTransactionManager 사용
+// JDBC 제약 위반 → DataAccessException → 기본 롤백</code></pre></div><div class="explain"><div class="caption">THREAD-BOUND RESOURCES</div><h3>인터셉터는 경계를, 관리자는 자원을 맡는다.</h3><p>Spring AOP 프록시의 <code>TransactionInterceptor</code>가 트랜잭션 속성을 해석하고 <code>PlatformTransactionManager</code>를 호출합니다. JDBC에서는 <code>DataSourceTransactionManager</code>가 연결을 현재 스레드에 묶습니다.</p><p><code>JdbcTemplate</code>은 같은 DataSource의 thread-bound connection을 얻습니다. 새로운 트랜잭션이면 autoCommit을 끄고, 종료 시 commit 또는 rollback 뒤 자원을 해제합니다. 새 스레드로 자동 전파되지는 않습니다.</p></div></div><div class="flow-strip"><b>Spring AOP 프록시</b><span>→</span><b>TransactionInterceptor</b><span>→</span><b>트랜잭션 관리자</b><span>→</span><b>Service → 같은 연결의 SQL</b></div><div class="difference"><h4>예외가 발생했다고 항상 롤백하지는 않는다.</h4><p>기본 설정은 <code>RuntimeException</code>·<code>Error</code> 롤백, checked 예외는 커밋입니다. 예외는 호출자에게 계속 전달됩니다. checked 업무 예외도 롤백하려면 <code>@Transactional(rollbackFor = BusinessException.class)</code>로 지정합니다. <code>noRollbackFor</code>는 지정 예외의 롤백을 제외하며, 가장 구체적인 일치 규칙이 우선합니다.</p><p>Spring JDBC의 <code>DataAccessException</code>은 RuntimeException이므로 기본 롤백 대상입니다. 직접 JDBC에서 던진 checked <code>SQLException</code>의 기본 정책과 혼동하지 마세요. Spring 6.2부터는 전역 기본 롤백 정책을 변경하는 설정도 있으므로 여기서는 변경하지 않은 기본 설정을 가정합니다.</p></div><div class="lab" id="transaction-lab" data-lab="transaction" role="region" aria-labelledby="transaction-lab-title"><div class="lab-heading"><div class="caption">INTERACTIVE / SPRING PROXY BOUNDARY</div><h3 id="transaction-lab-title">같은 실패인데, 잔액이 다르다?</h3><p>두 계좌는 100에서 시작합니다. 출금 30은 성공하고, 입금은 상한 120 제약으로 실패합니다. Spring JdbcTemplate의 DataAccessException이 호출자까지 전파되며 기본 롤백 규칙이 적용됩니다. 트랜잭션이 없으면 autoCommit=true인 연결을 가정합니다.</p></div><div class="no-js-note">JavaScript 없이도 아래 전체 실행 순서를 읽을 수 있습니다.</div><div class="scenario-bar js-only"><label for="transaction-scenario">비교할 호출 경로</label><select id="transaction-scenario" data-action="scenario"><option value="external">외부 → @Transactional transfer()</option><option value="self">비트랜잭션 바깥 → this.transfer()</option><option value="outer">@Transactional 바깥 → this.transfer()</option></select></div><div class="lab-dynamic js-only"></div><details class="static-steps" open><summary>전체 실행 순서 · 정적으로 읽기</summary><div class="detail-body"><ol><li><strong>외부 → transfer:</strong> 프록시가 경계를 시작합니다. 출금까지 롤백하여 최종 잔액은 <strong>100 / 100</strong>입니다.</li><li><strong>비트랜잭션 바깥 → this.transfer:</strong> target 내부 호출은 프록시를 다시 통과하지 않습니다. 출금은 자동 커밋되어 <strong>70 / 100</strong>이 남습니다.</li><li><strong>트랜잭션 바깥 → this.transfer:</strong> 자기 호출은 새 경계를 만들지 않지만 기존 트랜잭션은 유지됩니다. 바깥 경계로 실패가 전파되어 <strong>100 / 100</strong>으로 롤백됩니다.</li></ol><p>프록시 기반 AOP 모드의 동작입니다. 중간 잔액은 작업 효과를 나타내며, 다른 연결에 미커밋 데이터가 보인다는 의미가 아닙니다.</p></div></details><div class="lab-foot">공식 문서·소스를 바탕으로 계층을 생략한 교육용 시각화입니다. 표시 코드는 설명용 의사 코드이며 Java·DB를 브라우저에서 실행하지 않습니다.</div></div><details><summary>REQUIRED와 rollbackOnly · 안쪽 예외를 잡아도 왜 실패할까?</summary><div class="detail-body"><p><code>REQUIRED</code>는 기존 트랜잭션이 없으면 시작하고, 있으면 같은 물리 트랜잭션에 참여합니다. 참여한 프록시 경계를 롤백 대상 예외가 넘어가면 rollbackOnly를 표시할 수 있습니다. 바깥에서 예외를 잡아도 이 표시가 남으면 커밋할 수 없어 <code>UnexpectedRollbackException</code>이 발생합니다.</p><p>같은 메서드 안에서 예외를 잡아 인터셉터에 전달하지 않으면 인터셉터의 예외 기반 롤백 판단은 실행되지 않습니다. DB나 JPA provider가 자원 자체를 rollback-only로 만든 경우는 별도입니다. 자기 호출의 내부 어노테이션은 새로운 참여 경계로 해석되지 않습니다.</p><p><code>REQUIRES_NEW</code>는 별도 물리 트랜잭션, <code>NESTED</code>는 보통 JDBC savepoint를 이용합니다. 실제 지원은 선택한 관리자와 자원에 달려 있습니다.</p></div></details><div class="source-links"><a href="https://docs.spring.io/spring-framework/reference/6.2/core/aop/proxying.html">공식 · Spring 프록시와 자기 호출 ↗</a><a href="https://docs.spring.io/spring-framework/reference/6.2/data-access/transaction/declarative/tx-propagation.html">공식 · REQUIRED와 rollbackOnly ↗</a><a href="https://github.com/spring-projects/spring-framework/blob/v6.2.12/spring-tx/src/main/java/org/springframework/transaction/interceptor/DefaultTransactionAttribute.java">소스 · 기본 롤백 판단 ↗</a><a href="https://github.com/spring-projects/spring-framework/blob/v6.2.12/spring-jdbc/src/main/java/org/springframework/jdbc/datasource/DataSourceTransactionManager.java">소스 · JDBC 트랜잭션 관리자 ↗</a></div><div class="next-link"><span>업무 경계는 묶었습니다. 객체 구조에서 SQL을 생성하는 쪽으로 넘어갑니다.</span><a href="#entity">JPA 매핑 살펴보기 →</a></div></section>
 
-<div class="lab" id="proxy-lab" data-lab="mapper" role="region" aria-labelledby="proxy-lab-title"><div class="lab-heading"><div class="caption">INTERACTIVE 01 / JDK DYNAMIC PROXY</div><h3 id="proxy-lab-title">호출 한 번을, 끝까지 따라가 보기.</h3><p>simple-jorm의 실제 코드 흐름을 재구성한 교육용 시각화입니다. Java나 DB를 브라우저에서 실행하지 않습니다.</p></div><div class="no-js-note">JavaScript 없이도 아래 ‘전체 실행 순서’를 읽을 수 있습니다.</div><div class="scenario-bar js-only"><label for="mapper-scenario">비교할 호출</label><select id="mapper-scenario" data-action="scenario"><option value="mapper">정상 조회 · findById(1L)</option><option value="missing">어노테이션 없는 메서드</option><option value="object">Object 메서드 · toString()</option></select></div><div class="lab-dynamic js-only"></div><details class="static-steps" open><summary>전체 실행 순서 · 정적으로 읽기</summary><div class="detail-body"><ol><li><code>@Retention(RUNTIME)</code>으로 어노테이션 정보가 클래스 파일에 남고 실행 중 리플렉션으로 읽힙니다.</li><li>팩토리가 클래스 로더, 인터페이스 배열, 핸들러를 <code>Proxy.newProxyInstance()</code>에 전달합니다.</li><li>JDK는 프록시 클래스를 생성하거나 재사용하고, 핸들러가 연결된 새 프록시 객체를 만듭니다.</li><li><code>mapper.findById(1L)</code>이 <code>invoke(proxy, method, args)</code>로 전달됩니다.</li><li>핸들러가 인터페이스 메서드의 <code>@Select</code>를 읽고 SQL을 꺼냅니다.</li><li><code>JdbcTemplate</code>이 <code>args[0]</code>을 첫 번째 <code>?</code>에 바인딩해 SQL을 실행합니다.</li><li><code>BeanPropertyRowMapper</code>가 결과 행을 새 <code>User</code> 객체로 바꿉니다.</li><li>객체가 핸들러와 프록시를 거쳐 호출자에게 반환됩니다.</li></ol><p>어노테이션이 없으면 <code>UnsupportedOperationException</code>이 발생합니다. <code>toString()</code>은 SQL 검사보다 먼저 별도로 처리하여 <code>"MapperProxy"</code>를 반환합니다.</p></div></details><div class="lab-foot">① 호출 인자 · ② SQL · ③ 결과 객체를 같은 이름표로 추적하세요. 처음에는 ‘다음’ 버튼으로 한 장면씩 읽는 것을 권합니다.</div></div>
+<section class="section" id="entity" aria-labelledby="entity-title"><div class="section-head"><span class="section-no" aria-hidden="true">04</span><div><div class="section-kicker">JPA / HIBERNATE · 구조와 매핑 메타데이터</div><h2 id="entity-title">객체 구조가 SQL의 재료가 된다.</h2></div></div><p class="lead">Jakarta Persistence(JPA)는 객체 영속화의 표준 API와 매핑 규칙입니다. Hibernate ORM은 이를 구현하는 provider이며, 메타데이터를 분석해 SQL과 객체 사이를 연결합니다.</p><div class="pair"><div class="codebox"><div class="code-label">jakarta.persistence · 필드 접근 매핑</div><pre tabindex="0" aria-label="jakarta.persistence · 필드 접근 매핑"><code>@MappedSuperclass
+abstract class BaseEntity {
+  @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+  protected Long id;
+}
 
-<details><summary>RUNTIME이 없으면? · 생성된 프록시는 어떻게 생겼을까?</summary><div class="detail-body"><p><code>SOURCE</code>는 컴파일 때 버려지고, <code>CLASS</code>는 클래스 파일에 기록되지만 런타임 리플렉션 조회를 보장하지 않습니다. <code>RUNTIME</code>이 실행 중 조회를 가능하게 합니다. 이 프로젝트의 처리는 컴파일 타임 어노테이션 프로세서가 아닙니다.</p><p>아래는 개념을 설명하는 의사 코드입니다. 실제 생성 클래스 이름과 바이트코드, 예외 처리 코드는 JDK에 따라 달라질 수 있습니다.</p></div><div class="codebox"><div class="code-label">설명용 의사 코드 · 실제 생성 클래스의 소스 아님</div><pre tabindex="0" aria-label="생성 프록시 의사 코드"><code>class GeneratedProxy extends Proxy implements UserMapper {
-  User findById(Long id) {
-    return (User) handler.invoke(this, findByIdMethod,
-                                new Object[] { id });
-  }
-}</code></pre></div><div class="detail-body"><p><code>method</code>는 이름 문자열이 아닌 <code>java.lang.reflect.Method</code> 객체입니다. 메서드의 반환 타입·파라미터·어노테이션을 조회할 수 있습니다. <code>method.invoke(proxy, args)</code>로 같은 프록시를 다시 호출하면 핸들러로 재진입하여 재귀가 발생합니다.</p><p>현재 Mapper의 추상 메서드는 SQL 어노테이션을 정확히 하나 요구합니다. 조회는 매핑 가능한 단건 객체 또는 <code>List&lt;T&gt;</code>, 변경은 <code>int</code>를 지원합니다. default 메서드는 SQL 검사 전에 본문을 실행하며 <code>Object</code> 메서드는 기존 동일성 계약으로 처리합니다.</p></div></details>
-<div class="difference"><h4>실제 MyBatis와 어디가 다를까?</h4><p><strong>인터페이스·어노테이션·프록시로 SQL 호출을 연결한다는 아이디어</strong>가 대응합니다. simple-jorm은 호출할 때 어노테이션에서 SQL을 꺼내 자체 <code>JdbcTemplate</code>에 전달합니다. MyBatis는 설정 분석 과정에서 SQL 선언을 등록하고, 실행 시 <code>MapperProxy</code>·캐시된 메서드 실행기·<code>SqlSession</code> 등의 계층을 사용합니다. Spring의 JdbcTemplate을 거치는 구조가 아닙니다.</p><p>여기의 <code>@Select</code>와 <code>@Param</code>은 <code>com.jorm.mapper</code>의 자체 어노테이션입니다. MyBatis와 같이 <code>#{id}</code>를 PreparedStatement 파라미터로 바꾸는 핵심 경로를 구현했습니다. JORM은 단순 이름과 명시적 <code>@Param</code>만 지원합니다. bean/record 속성 경로·자동 <code>param1</code> 이름·타입 옵션·XML 매핑·동적 SQL·복잡한 결과 매핑은 범위 밖입니다. 리터럴·인용 식별자·주석의 토큰은 보존하며, SQL 방언 전체를 해석하지는 않습니다.</p></div>
-<div class="source-links"><a href="https://github.com/whoisyourbias/simple-jorm/blob/4a97101803756b08a0b91aeb454c16ca74bd0ae6/doc/02-mapper/02-tests-and-next-steps.md">단계 문서 ↗</a><a href="https://github.com/whoisyourbias/simple-jorm/blob/4a97101803756b08a0b91aeb454c16ca74bd0ae6/src/main/java/com/jorm/mapper/MapperInvocationHandler.java">소스 · Mapper 핸들러 ↗</a><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/reflect/Proxy.html">공식 · JDK Proxy ↗</a><a href="https://mybatis.org/mybatis-3/java-api.html">공식 · MyBatis @Param ↗</a><a href="https://mybatis.org/mybatis-3/sqlmap-xml.html#Parameters">공식 · MyBatis 파라미터 바인딩 ↗</a><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/reflect/InvocationHandler.html#invokeDefault(java.lang.Object,java.lang.reflect.Method,java.lang.Object...)">공식 · default 메서드 실행 ↗</a><a href="https://mybatis.org/mybatis-3/xref/org/apache/ibatis/binding/MapperProxy.html">실제 구현 · MyBatis MapperProxy ↗</a><a href="https://mybatis.org/mybatis-3/xref/org/apache/ibatis/builder/annotation/MapperAnnotationBuilder.html">실제 구현 · 어노테이션 분석 ↗</a></div>
-<div class="next-link"><span>조회 한 번은 편해졌습니다. 그런데 송금처럼 두 SQL이 함께 성공해야 한다면?</span><a href="#transaction">성공과 실패를 묶기 →</a></div></section>
-
-<section class="section" id="transaction" aria-labelledby="transaction-title"><div class="section-head"><span class="section-no" aria-hidden="true">03</span><div><div class="section-kicker">3 / 5 · 먼저 알 것: Connection, 프록시 <span class="tag">구현 완료</span></div><h2 id="transaction-title">두 번의 SQL, 하나의 성공.</h2></div></div>
-<p class="lead">출금은 성공했는데 입금이 실패했습니다. 각 SQL이 따로 확정되면 돈이 사라집니다. 필요한 것은 메서드 하나의 편의보다, 업무 전체의 원자성입니다.</p><p class="question">“같은 업무의 SQL이 같은 Connection을 쓰게 할 수 없을까?”</p>
-<div class="pair"><div class="codebox"><div class="code-label">프로그램 방식 · 같은 관리자 인스턴스 주입</div><pre tabindex="0" aria-label="트랜잭션 사용 예제"><code>TransactionManager tx = new TransactionManager(source);
-JdbcTemplate jdbc = new JdbcTemplate(tx);
-AccountMapper accounts = MapperFactory.create(
-  AccountMapper.class, jdbc);
-
-tx.execute(() -> {
-  accounts.withdraw(30, 1L);
-  accounts.deposit(30, 2L);
-  return null;
-});</code></pre></div><div class="explain"><div class="caption">SAME THREAD + SAME MANAGER</div><h3>연결은 프록시가 아닌 관리자가 기억한다.</h3><p><code>ThreadLocal</code>에 현재 스레드의 연결과 rollbackOnly 상태를 보관합니다. 같은 관리자에서 실행하는 JDBC 작업은 그 연결을 재사용합니다.</p><p>가장 바깥 경계에서 autoCommit을 끄고, 업무를 마친 뒤 commit 또는 rollback하고 상태와 연결을 정리합니다. 안쪽 REQUIRED 호출은 기존 트랜잭션에 참여합니다.</p></div></div>
-<div class="flow-strip"><b>Service 프록시</b><span>→ @Transactional 검사 →</span><b>TransactionManager.execute</b><span>→</span><b>실제 Service</b><span>→</span><b>SQL들 · 같은 Connection</b></div>
-<p><code>@Transactional</code>은 이 경계를 선언하는 표시입니다. <code>TransactionProxyFactory</code>로 만든 프록시가 <strong>실제 Service 구현 메서드</strong>의 어노테이션을 읽고 업무를 감쌉니다. Mapper 프록시와 달리 호출할 <code>target</code> 객체가 있습니다.</p>
-<p>선언적 기본 규칙은 <code>RuntimeException</code>·<code>Error</code> 롤백입니다. checked 예외는 커밋 후 원본을 다시 던집니다. <code>rollbackFor</code>·<code>noRollbackFor</code>로 예외 타입과 하위 타입의 정책을 바꿀 수 있으며, 가장 구체적인 타입이 우선합니다. 같은 타입을 두 속성에 지정하면 롤백합니다. 명시적 <code>execute()</code>는 기존처럼 <code>SQLException</code>도 롤백합니다.</p>
-
-<div class="lab" id="transaction-lab" data-lab="transaction" role="region" aria-labelledby="tx-lab-title"><div class="lab-heading"><div class="caption">INTERACTIVE 02 / PROXY BOUNDARY</div><h3 id="tx-lab-title">같은 실패인데, 잔액이 다르다?</h3><p>두 계좌는 각각 100에서 시작합니다. 출금 30은 성공하고, 입금은 잔액 상한 120 제약 때문에 실패합니다. 이 예제의 트랜잭션 진입 메서드는 <code>@Transactional(rollbackFor = SQLException.class)</code>로 SQL 실패의 롤백을 명시합니다.</p></div><div class="no-js-note">아래 정적 비교에서 세 호출 경로와 최종 잔액을 확인할 수 있습니다.</div><div class="scenario-bar js-only"><label for="tx-scenario">비교할 진입 경로</label><select id="tx-scenario" data-action="scenario"><option value="external">외부 → @Transactional transfer()</option><option value="self">외부 → 비트랜잭션 메서드 → this.transfer()</option><option value="outer">외부 → @Transactional 바깥 메서드 → this.transfer()</option></select></div><div class="lab-dynamic js-only"></div><details class="static-steps" open><summary>세 경로의 결과 · 정적으로 읽기</summary><div class="detail-body"><ol><li><strong>외부에서 transfer 호출:</strong> 프록시가 트랜잭션을 시작합니다. 입금 실패 시 출금까지 롤백하여 최종 잔액은 <strong>100 / 100</strong>입니다.</li><li><strong>비트랜잭션 메서드에서 this.transfer:</strong> 자기 호출은 프록시로 재진입하지 않아 내부의 어노테이션을 검사하지 않습니다. 출금은 이미 자동 커밋되어 <strong>70 / 100</strong>이 남습니다.</li><li><strong>트랜잭션이 있는 바깥 메서드에서 this.transfer:</strong> 자기 호출이 새 경계를 만들지는 않지만 이미 시작한 트랜잭션의 연결을 씁니다. 실패 시 함께 롤백되어 <strong>100 / 100</strong>입니다.</li></ol><p>여기서 표시하는 실행 중 잔액은 해당 작업의 효과를 설명하는 값입니다. 다른 연결에서 미커밋 변경이 보인다는 의미는 아닙니다.</p></div></details><div class="lab-foot">연결 공유 조건: 같은 스레드 + 같은 TransactionManager 인스턴스. 잔액 결과는 저장소의 TransactionSelfInvocationTest에 대응합니다.</div></div>
-
-<details><summary>REQUIRED와 rollbackOnly · 안쪽 예외를 잡아도 왜 롤백될까?</summary><div class="detail-body"><p>안쪽 <code>execute()</code> 또는 트랜잭션 Service 프록시가 기존 트랜잭션에 참여합니다. 그 <strong>참여 경계를 넘어</strong> 롤백 대상 예외가 나오면 rollbackOnly를 기록합니다. 이 표시가 있으면 바깥 업무가 예외를 잡고 정상 반환해도 전체 롤백 후 <code>UnexpectedRollbackException</code>이 발생합니다. 선언적 경계의 checked 기본 예외나 <code>noRollbackFor</code> 예외를 바깥 업무가 잡으면 이 표시를 남기지 않아 커밋할 수 있습니다. 예외가 바깥 경계까지 전파되면 바깥의 롤백 규칙도 적용합니다.</p><p>반대로 같은 콜백 내부에서 예외를 잡아 경계 밖으로 보내지 않으면 관리자는 그 실패를 알 수 없습니다. 모든 catch가 무조건 전체 롤백을 만드는 것은 아닙니다.</p><p><code>new JdbcTemplate(dataSource)</code>는 자체 관리자를 만듭니다. 별도로 만든 관리자의 트랜잭션과 자동으로 공유되지 않습니다. 다른 스레드·비동기 작업으로 연결을 전파하지도 않습니다.</p></div></details>
-<div class="difference"><h4>실제 Spring 트랜잭션과 어디가 다를까?</h4><p>프록시로 업무 경계를 감싸고 REQUIRED로 참여한다는 의미는 비슷합니다. 자체 Service 프록시는 구현 메서드의 표시만 읽으며 인터페이스 기반 JDK 프록시를 수동 생성합니다. Spring은 더 넓은 메타데이터 탐색·설정 기능과 클래스 기반 프록시도 제공합니다.</p><p><strong>선언적 기본 롤백 규칙과 타입 규칙을 맞췄습니다.</strong> 자체 구현도 <code>RuntimeException</code>·<code>Error</code>를 기본 롤백하고 <code>rollbackFor</code>·<code>noRollbackFor</code>를 지원합니다. Spring의 이름 패턴 규칙과 전역 기본값 변경은 없습니다. Spring JDBC는 SQL 예외를 unchecked 예외로 변환한다는 점도 함께 봐야 합니다.</p><p>등록된 <code>TransactionResource.beforeCommit()</code>는 바깥 커밋 직전에 같은 연결의 SQL로 상태를 동기화할 수 있습니다. 콜백 실패는 전체 롤백하며, 종료 후 <code>afterCompletion()</code>으로 자원을 정리합니다. 이 최소 콜백은 Spring의 전체 트랜잭션 동기화 API와는 범위가 다릅니다.</p><p>자체 구현은 REQUIRED만 지원합니다. REQUIRES_NEW·NESTED·savepoint는 없습니다. 자기 호출 우회는 Spring의 프록시 기반 AOP에서도 이해해야 하는 경계입니다.</p></div>
-<div class="source-links"><a href="https://github.com/whoisyourbias/simple-jorm/blob/4a97101803756b08a0b91aeb454c16ca74bd0ae6/doc/03-transaction/01-connection-and-transaction.md">단계 문서 ↗</a><a href="https://github.com/whoisyourbias/simple-jorm/blob/4a97101803756b08a0b91aeb454c16ca74bd0ae6/src/main/java/com/jorm/transaction/TransactionInvocationHandler.java">소스 · Service 핸들러 ↗</a><a href="https://github.com/whoisyourbias/simple-jorm/blob/4a97101803756b08a0b91aeb454c16ca74bd0ae6/src/test/java/com/jorm/transaction/TransactionSelfInvocationTest.java">근거 · 자기 호출 테스트 ↗</a><a href="https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/rolling-back.html">공식 · Spring 롤백 규칙 ↗</a><a href="https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/tx-propagation.html">공식 · 트랜잭션 전파 ↗</a></div>
-<div class="next-link"><span>여러 작업의 성공은 묶었습니다. 하지만 기본 CRUD의 SQL은 여전히 직접 써야 합니다.</span><a href="#entity">객체에서 SQL 만들기 →</a></div></section>
-
-<section class="section" id="entity" aria-labelledby="entity-title"><div class="section-head"><span class="section-no" aria-hidden="true">04</span><div><div class="section-kicker">4 / 5 · 먼저 알 것: 필드, 어노테이션, CRUD <span class="tag">구현 완료</span></div><h2 id="entity-title">이제 객체 구조가 SQL의 재료다.</h2></div></div>
-<p class="lead">테이블과 컬럼, ID가 정해지면 기본 CRUD의 형태는 반복됩니다. 이 정보를 객체에 적고, 공통 코드가 SQL을 만들게 했습니다.</p><div class="pair"><div class="codebox"><div class="code-label">매핑 선언 · 모두 com.jorm.entity의 자체 타입</div><pre tabindex="0" aria-label="엔티티 매핑 예제"><code>@Table("users")
-class User {
-  @Id
-  Long id;
-
-  @Column("user_name")
+@Entity
+@Table(name = &quot;users&quot;)
+class User extends BaseEntity {
+  @Column(name = &quot;user_name&quot;)
   String name;
+  @Transient
+  String displayLabel;
+  protected User() {}
+}</code></pre></div><div class="codebox"><div class="code-label">JPA EntityManager · 트랜잭션 안의 예제</div><pre tabindex="0" aria-label="JPA EntityManager · 트랜잭션 안의 예제"><code>User user = new User();
+user.name = &quot;Alice&quot;;
+em.persist(user); // void: 관리 상태로 전환
+em.flush(); // IDENTITY 생성 키를 사용할 준비
 
-  User() {}
-}</code></pre></div><div class="codebox"><div class="code-label">명시적 CRUD · 즉시 SQL 실행</div><pre tabindex="0" aria-label="EntityManager 사용 예제"><code>User user = new User();
-user.id = 1L;
-user.name = "Alice";
+User found = em.find(User.class, user.id);
+found.name = &quot;Bob&quot;; // 관리 상태의 변경
 
-int inserted = entities.persist(user);
-User found = entities.find(User.class, 1L);
-found.name = "Bob";
-int updated = entities.update(found);
-int deleted = entities.remove(found);</code></pre></div></div>
-<div class="flow-strip"><b>클래스·필드 어노테이션</b><span>→</span><b>EntityMetadata</b><span>→</span><b>SQL + 값 배열</b><span>→</span><b>JdbcTemplate → DB</b></div>
-<p><code>EntityMetadata</code>가 테이블명, ID 필드, 컬럼과 필드의 연결을 분석합니다. <code>EntityManager</code>는 클래스별 분석 결과를 캐시하고 객체의 값을 읽어 SQL을 생성합니다. 이 캐시는 <strong>클래스의 구조 정보</strong>를 재사용하며, 조회한 엔티티 객체를 보관하는 1차 캐시가 아닙니다.</p>
-<div class="table-wrap" tabindex="0" role="region" aria-label="엔티티 API와 즉시 실행 SQL 비교"><table><thead><tr><th>호출</th><th>생성하는 SQL의 형태</th><th>현재 동작</th></tr></thead><tbody><tr><td><code>persist(user)</code></td><td><code>INSERT INTO users (id, user_name) VALUES (?, ?)</code></td><td>즉시 실행, 변경 행 수 반환</td></tr><tr><td><code>find(User.class, id)</code></td><td><code>SELECT id, user_name FROM users WHERE id = ?</code></td><td>매번 조회·새 객체 생성, 없으면 null</td></tr><tr><td><code>update(user)</code></td><td><code>UPDATE users SET user_name = ? WHERE id = ?</code></td><td>ID 외 모든 매핑 필드 수정</td></tr><tr><td><code>remove(user)</code></td><td><code>DELETE FROM users WHERE id = ?</code></td><td>대상 없으면 0, 객체 값은 유지</td></tr></tbody></table></div>
-<details><summary>생성 ID · IDENTITY와 UUID는 언제 값이 생길까?</summary><div class="detail-body"><p><strong>직접 지정:</strong> 저장 전에 ID가 있어야 하고 INSERT에 포함합니다.</p><p><strong>IDENTITY:</strong> <code>@GeneratedValue(strategy = GenerationType.IDENTITY)</code>를 붙이고 ID는 null로 둡니다. INSERT에서 ID를 제외하고 DB가 만든 키를 같은 연결에서 읽어 객체에 넣습니다. 자체 구현은 <code>Long</code>·<code>Integer</code>를 지원합니다.</p><p><strong>UUID:</strong> INSERT 전에 <code>UUID.randomUUID()</code>로 값을 생성해 객체에 넣고 ID 컬럼도 함께 저장합니다. <code>UUID</code>·<code>String</code> 필드를 지원합니다.</p><p>생성 ID가 이미 있는 객체의 재저장은 거부합니다. 롤백되어 DB 행이 사라져도 객체에 넣은 ID는 남습니다. UUID는 SQL 실패 후에도 생성된 값이 남습니다. SEQUENCE·TABLE·AUTO 전략은 없습니다.</p></div></details>
-<div class="difference"><h4>실제 JPA / Hibernate와 어디가 다를까?</h4><p>객체·테이블 매핑과 SQL 생성은 ORM의 일부 역할입니다. JPA의 <code>persist()</code>는 엔티티를 영속성 컨텍스트의 관리 상태로 만드는 <code>void</code> API입니다. SQL 실행 시점은 flush·ID 전략 등에 영향을 받습니다. 자체 <code>persist()</code>는 <strong>즉시 INSERT하고 int를 반환</strong>합니다.</p><p>자체 <code>find()</code>는 매번 새 객체를 만듭니다. 필드만 수정해도 자동 UPDATE되지 않으며 명시적 <code>update()</code>가 필요합니다. JPA에서는 관리 상태 엔티티의 변경을 flush에서 동기화할 수 있고, JPA EntityManager에는 이와 같은 표준 <code>update(entity)</code> 메서드가 없습니다.</p><p>관계 매핑·복합 ID·상속 매핑·지연 로딩·영속성 컨텍스트는 아직 없습니다. 자체 <code>@Table</code>로 매핑 대상을 판단하고 JPA의 <code>@Entity</code>는 사용하지 않습니다. 메타데이터의 동시 접근 보장을 JPA EntityManager의 스레드 안전성으로 일반화해서도 안 됩니다.</p></div>
-<div class="architecture"><div class="arch-tx"><div class="caption">TRANSACTION MANAGER · 같은 스레드와 관리자에서 연결 공유</div><div class="arch-paths"><div class="arch-path"><strong>Mapper → 프록시 → Handler</strong><small>개발자가 SQL을 작성한다</small></div><div class="arch-path"><strong>EntityManager → EntityMetadata</strong><small>매핑 정보를 바탕으로 SQL을 생성한다</small></div></div><div class="arch-shared">↓ 공통 실행 계층 ↓<br><strong>JdbcTemplate → JDBC 드라이버 → DB</strong></div></div><p style="font-size:12px;margin-top:12px;color:var(--muted)">학습은 순서대로 했지만, EntityManager가 Mapper를 거쳐 실행되지는 않습니다. 두 경로는 현재 함께 존재합니다.</p></div>
-<div class="source-links"><a href="https://github.com/whoisyourbias/simple-jorm/blob/4a97101803756b08a0b91aeb454c16ca74bd0ae6/doc/04-entity-crud/01-metadata-and-insert.md">단계 문서 ↗</a><a href="https://github.com/whoisyourbias/simple-jorm/blob/4a97101803756b08a0b91aeb454c16ca74bd0ae6/src/main/java/com/jorm/entity/EntityManager.java">소스 · EntityManager ↗</a><a href="https://jakarta.ee/specifications/persistence/3.2/apidocs/jakarta.persistence/jakarta/persistence/EntityManager.html">표준 · JPA EntityManager ↗</a><a href="https://jakarta.ee/specifications/persistence/3.2/jakarta-persistence-spec-3.2.html">명세 · Jakarta Persistence 3.2 ↗</a></div>
-<div class="next-link"><span>SQL 작성은 줄었습니다. 이제 “같은 행을 나타내는 객체”와 “객체의 변경”을 관리할 차례입니다.</span><a href="#next">SQL 생성에서 상태 관리로 →</a></div></section>
+em.flush(); // DB와 동기화, commit과는 별개
+em.remove(found); // 삭제 대상으로 표시
+// 트랜잭션 커밋 시 DB 동기화와 확정</code></pre></div></div><div class="flow-strip"><b>매핑 메타데이터</b><span>→</span><b>provider의 엔티티·SQL 처리</b><span>→</span><b>JDBC</b><span>→</span><b>DB</b></div><p>provider는 클래스·속성·테이블·컬럼·식별자·연관관계의 매핑을 구성합니다. <code>@Entity</code>가 엔티티를 선언하고 <code>@Table</code>은 테이블을 지정합니다. ID를 필드에 두면 기본적으로 필드 접근, getter에 두면 프로퍼티 접근을 사용하며 <code>@Access</code>로 명시할 수 있습니다.</p><div class="pair"><div class="explain"><div class="caption">INHERITANCE</div><h3>상속은 매핑 모델의 선택이다.</h3><p><code>@MappedSuperclass</code>의 매핑 속성은 하위 엔티티로 상속됩니다. 상위 타입 자체는 엔티티나 독립 조회 대상이 아니며 전용 테이블을 만들지 않습니다.</p><p>엔티티 상속은 <code>@Inheritance</code>로 SINGLE_TABLE·JOINED·TABLE_PER_CLASS 전략을 선택합니다. 엔티티 계층의 기본은 SINGLE_TABLE이며, 일반 비엔티티 상위 클래스의 상태는 자동으로 영속 매핑되지 않습니다.</p></div><div class="explain"><div class="caption">PERSISTENT ATTRIBUTES</div><h3>저장할 상태를 명시한다.</h3><p>필드 접근에서는 static·Java <code>transient</code>·<code>@Transient</code> 필드를 영속 상태에서 제외합니다. 프로퍼티 접근이면 매핑 대상 getter에 <code>@Transient</code>를 둡니다.</p><p><code>@Column(insertable = false, updatable = false)</code>는 INSERT·UPDATE SQL 참여를 제어합니다. 조회 매핑도 제외하는 <code>@Transient</code>와 의미가 다릅니다.</p></div></div><details><summary>식별자 전략과 INSERT 시점</summary><div class="detail-body"><p>직접 지정 ID와 <code>@GeneratedValue</code>를 구분합니다. IDENTITY는 DB INSERT로 생성되는 키, SEQUENCE는 DB 시퀀스, TABLE은 키 생성 테이블, UUID는 UUID 생성, AUTO는 provider가 선택하는 전략입니다. 지원과 최적의 선택은 DB·provider에 따라 달라집니다.</p><p><code>persist()</code>의 의미는 새 엔티티를 관리 상태로 만드는 것입니다. 언제나 flush까지 INSERT를 미루는 API는 아닙니다. Hibernate의 <code>GenerationType.IDENTITY</code>는 생성 키를 얻기 위해 persist 시 즉시 INSERT가 필요할 수 있습니다. SQL 실행과 트랜잭션 커밋은 별개입니다.</p></div></details><div class="architecture"><div class="arch-paths"><div class="arch-path"><strong>MyBatis → SqlSession → Executor</strong><small>개발자가 작성한 SQL 중심</small></div><div class="arch-path"><strong>JPA → Hibernate ORM</strong><small>매핑과 관리 상태 중심</small></div></div><div class="arch-shared">각자의 실행 계층 → JDBC 드라이버 → DB</div><p style="font-size:12px;margin-top:12px">Hibernate가 MyBatis나 Spring JdbcTemplate을 거치는 구조는 아닙니다. Spring과 함께 쓰면 선택한 트랜잭션 관리자와 자원 설정에 따라 경계를 통합합니다.</p></div><div class="source-links"><a href="https://jakarta.ee/specifications/persistence/3.2/jakarta-persistence-spec-3.2.html">표준 · Jakarta Persistence 3.2 ↗</a><a href="https://jakarta.ee/specifications/persistence/3.2/apidocs/jakarta.persistence/jakarta/persistence/EntityManager.html">표준 API · EntityManager ↗</a><a href="https://docs.hibernate.org/orm/7.1/userguide/html_single/">구현 문서 · Hibernate ORM ↗</a></div><div class="next-link"><span>매핑은 객체 구조를 설명합니다. 이제 실행 중인 객체의 상태를 봅니다.</span><a href="#next">영속성 컨텍스트 살펴보기 →</a></div></section>
 
-<section class="section" id="next" aria-labelledby="next-title"><div class="section-head"><span class="section-no" aria-hidden="true">05</span><div><div class="section-kicker">5 / 5 · 먼저 알 것: 객체 동일성, 트랜잭션 <span class="tag future">다음 학습 · 미구현</span></div><h2 id="next-title">조회한 객체의 상태까지 기억한다면.</h2></div></div>
-<p class="lead">SQL 자동 생성만으로 객체의 생명주기를 관리하게 되지는 않습니다. 현재 같은 ID를 두 번 조회하면 서로 다른 객체가 생기고, 값을 바꾸어도 명시적 수정 호출 전까지 DB는 바뀌지 않습니다.</p><div class="pair"><div class="codebox"><div class="code-label">현재 simple-jorm의 동작</div><pre tabindex="0" aria-label="현재 객체 동일성 예제"><code>User a = entities.find(User.class, 1L);
-User b = entities.find(User.class, 1L);
+<section class="section" id="next" aria-labelledby="next-title"><div class="section-head"><span class="section-no" aria-hidden="true">05</span><div><div class="section-kicker">PERSISTENCE CONTEXT · 동일성과 실행 중 상태</div><h2 id="next-title">같은 객체를 기억하고, 변경을 동기화한다.</h2></div></div><p class="lead">영속성 컨텍스트는 엔티티의 관리 공간입니다. 동일한 영속성 식별자를 한 객체로 다루고, 관리 중인 상태를 DB에 동기화합니다. 매핑 메타데이터 캐시와는 역할이 다릅니다.</p><div class="pair"><div class="codebox"><div class="code-label">JPA · 같은 컨텍스트와 활성 트랜잭션 안에서</div><pre tabindex="0" aria-label="JPA · 같은 컨텍스트와 활성 트랜잭션 안에서"><code>User a = em.find(User.class, 1L);
+User b = em.find(User.class, 1L);
+assert a == b; // 같은 영속성 식별자 → 같은 관리 객체
 
-// 행이 존재해도 a == b 는 false
-a.name = "Bob";
-// 아직 UPDATE하지 않았다.
-entities.update(a); // 명시적으로 실행</code></pre></div><div class="explain"><div class="caption">NEXT QUESTIONS</div><h3>앞으로 배울 세 가지</h3><ol><li><strong>객체 동일성:</strong> 한 영속성 컨텍스트에서 같은 엔티티 ID를 같은 객체로 다루기.</li><li><strong>변경 감지:</strong> 처음 상태와 현재 상태를 비교해 변경을 찾아내기.</li><li><strong>flush:</strong> 관리 중인 상태를 DB와 동기화하기. commit과 같은 작업은 아닙니다.</li></ol></div></div><div class="note">이 영역은 구현 완료 기능이 아닌 다음 학습 목표입니다. 실제 JPA도 모든 Java 객체의 변경을 무조건 저장하지 않습니다. 관리 상태·트랜잭션·flush 조건을 함께 이해해야 합니다.</div><div class="next-link"><span>지금까지 만든 각 기능은 Java 데이터 접근 생태계에서 어디에 놓일까요?</span><a href="#ecosystem">전체 생태계 보기 →</a></div></section>
+a.name = &quot;Bob&quot;;
+em.flush(); // 변경 UPDATE 가능, 아직 commit 아님
+
+em.detach(a);
+a.name = &quot;Carol&quot;; // 분리 후 변경은 자동 반영되지 않음</code></pre></div><div class="explain"><div class="caption">MANAGED STATE</div><h3>관리하는 객체의 변경을 찾는다.</h3><p>Hibernate의 일반적인 dirty checking은 로딩 당시 스냅샷과 현재 상태를 비교합니다. 변경된 관리 엔티티에 필요한 UPDATE를 flush 과정에서 준비합니다. 바이트코드 향상 등으로 변경 추적 방법을 최적화할 수도 있습니다.</p><p>JPA는 변경 동기화의 의미를 규정하며 특정 스냅샷 알고리즘을 의무화하지 않습니다. 모든 Java 객체가 대상은 아닙니다. 새 객체는 persist, 분리된 객체는 merge 등으로 관리 상태와 연결해야 합니다.</p></div></div><div class="flow-strip"><b>관리 엔티티 수정</b><span>→</span><b>dirty checking</b><span>→</span><b>flush · SQL 실행</b><span>→</span><b>commit · 트랜잭션 확정</b></div><div class="difference"><h4>flush는 동기화, commit은 확정이다.</h4><p><code>flush()</code>는 현재 영속성 컨텍스트의 변경을 DB에 보냅니다. 트랜잭션을 끝내지 않으므로 이후 rollback으로 취소할 수 있습니다. commit은 트랜잭션을 확정하며 보통 그 전에 필요한 flush가 수행됩니다.</p><p><code>FlushModeType.AUTO</code>에서는 트랜잭션 커밋 전뿐 아니라 쿼리 결과에 영향을 줄 변경이 있으면 쿼리 실행 전에도 동기화가 필요할 수 있습니다. Hibernate는 JPQL/HQL의 관련 테이블, native SQL의 실행 API와 동기화 설정 등을 보고 시점을 판단합니다. 모든 쿼리 직전에 무조건 전체 UPDATE를 보내는 것은 아닙니다.</p></div><details><summary>COMMIT 모드 · clear · rollback 이후</summary><div class="detail-body"><p><code>FlushModeType.COMMIT</code>은 커밋 시 동기화를 중심으로 하며 쿼리에 대한 미반영 변경의 영향은 표준상 지정되지 않습니다. 실제 flush는 활성 트랜잭션과 컨텍스트의 트랜잭션 참여 조건도 확인해야 합니다.</p><p><code>clear()</code>는 관리 엔티티를 분리하므로 flush하지 않은 변경을 잃을 수 있습니다. rollback이 Java 객체의 필드 값을 예전 값으로 복원하는 것은 아닙니다. 예외나 rollback 이후에는 컨텍스트 수명과 재조회 전략을 함께 관리해야 합니다.</p></div></details><div class="source-links"><a href="https://jakarta.ee/specifications/persistence/3.2/jakarta-persistence-spec-3.2.html">표준 · 컨텍스트와 동기화 ↗</a><a href="https://docs.hibernate.org/orm/7.1/userguide/html_single/#flushing">Hibernate · Flushing ↗</a><a href="https://docs.hibernate.org/orm/7.1/userguide/html_single/#pc">Hibernate · Persistence Contexts ↗</a></div><div class="next-link"><span>다섯 단계는 한 프레임워크의 직선 파이프라인이 아니라 서로 다른 역할입니다.</span><a href="#ecosystem">전체 생태계 보기 →</a></div></section>
 
 <section class="section" id="ecosystem" aria-labelledby="ecosystem-title"><div class="section-kicker">THE BIG PICTURE</div><h2 id="ecosystem-title">모두 “ORM”이라고 부르면 놓치는 것들.</h2><p class="lead" style="margin-top:20px">같은 DB에 접근해도 맡은 역할과 추상화 수준이 다릅니다. 서로 대체하는 기술도 있고, 함께 사용하는 기술도 있습니다.</p><div class="ecosystem-grid"><div class="eco"><div class="caption">SPECIFICATION & PROVIDER</div><h3>JPA · Hibernate · EclipseLink</h3><p>Jakarta Persistence(JPA)는 객체 영속화 표준입니다. Hibernate ORM과 EclipseLink는 이를 구현하는 provider입니다. 표준 API 의존성만으로는 실제 DB 작업을 수행할 수 없습니다.</p><div class="chain">애플리케이션 → JPA 구현체 → JDBC → DB</div></div><div class="eco"><div class="caption">REPOSITORY ABSTRACTION</div><h3>Spring Data JPA</h3><p>JPA 기반 Repository 구현을 지원합니다. Hibernate와 서로 다른 계층으로 함께 쓸 수 있습니다. Repository 없이 EntityManager를 직접 사용하는 것도 가능합니다.</p><div class="chain">Repository → JPA provider → JDBC → DB</div></div><div class="eco"><div class="caption">SQL-FIRST ACCESS</div><h3>MyBatis · jOOQ · Spring JDBC</h3><p>MyBatis는 직접 작성한 SQL과 Mapper를 연결합니다. jOOQ는 Java SQL DSL을 중심으로 실행·매핑도 제공합니다. Spring JDBC는 SQL 실행의 반복 절차를 줄입니다.</p><div class="chain">SQL·DSL·Mapper → 실행·매핑 → JDBC → DB</div></div><div class="eco"><div class="caption">OTHER MODELS</div><h3>Spring Data JDBC · R2DBC</h3><p>Spring Data JDBC는 Aggregate 중심 저장 모델을 제공합니다. JPA식 영속성 컨텍스트·변경 감지를 전제로 하지 않습니다. R2DBC는 JDBC와 별도의 리액티브 연결 API 경로입니다.</p><div class="chain">JDBC 경로 / R2DBC 경로는 구분해서 이해</div></div></div>
-<div class="table-wrap" tabindex="0" role="region" aria-label="데이터 접근 기술별 책임 비교"><table><thead><tr><th>기술</th><th>SQL은 누가 표현하나?</th><th>변경은 어떻게 반영하나?</th><th>우리 학습과의 연결</th></tr></thead><tbody><tr><td>직접 JDBC</td><td>개발자</td><td>UPDATE 직접 실행</td><td>출발점</td></tr><tr><td>Spring JDBC</td><td>개발자</td><td>명시적 update 호출</td><td>01 실행·행 매핑</td></tr><tr><td>MyBatis</td><td>개발자, SQL 선언</td><td>변경 Mapper 호출</td><td>02 인터페이스·프록시</td></tr><tr><td>jOOQ</td><td>개발자, 주로 SQL DSL</td><td>DML·저장 API 명시 호출</td><td>별도의 SQL 표현 방식</td></tr><tr><td>Spring Data JDBC</td><td>CRUD 생성·사용자 쿼리</td><td>save 등 명시 호출</td><td>다른 객체 저장 모델</td></tr><tr><td>JPA provider</td><td>매핑 기반 생성·사용자 쿼리</td><td>관리 객체 상태를 flush로 동기화 가능</td><td>04 매핑 / 05 상태 관리</td></tr></tbody></table></div>
+<div class="table-wrap" tabindex="0" role="region" aria-label="데이터 접근 기술별 책임 비교"><table><thead><tr><th>기술</th><th>SQL은 누가 표현하나?</th><th>변경은 어떻게 반영하나?</th><th>학습 단계와의 연결</th></tr></thead><tbody><tr><td>직접 JDBC</td><td>개발자</td><td>UPDATE 직접 실행</td><td>출발점</td></tr><tr><td>Spring JDBC</td><td>개발자</td><td>명시적 update 호출</td><td>01 실행·행 매핑</td></tr><tr><td>MyBatis</td><td>개발자, SQL 선언</td><td>변경 Mapper 호출</td><td>02 인터페이스·프록시</td></tr><tr><td>jOOQ</td><td>개발자, 주로 SQL DSL</td><td>DML·저장 API 명시 호출</td><td>별도의 SQL 표현 방식</td></tr><tr><td>Spring Data JDBC</td><td>CRUD 생성·사용자 쿼리</td><td>save 등 명시 호출</td><td>다른 객체 저장 모델</td></tr><tr><td>JPA provider</td><td>매핑 기반 생성·사용자 쿼리</td><td>관리 객체 상태를 flush로 동기화 가능</td><td>04 매핑 / 05 상태 관리</td></tr></tbody></table></div>
 <p class="note">트랜잭션 관리와 커넥션 풀은 여러 접근 기술과 함께 쓰는 역할입니다. 같은 DB를 쓴다는 이유만으로 연결·트랜잭션·캐시가 자동으로 공유되지는 않습니다. 이 표는 우열이나 코드 수정 없는 교체 가능성을 뜻하지 않습니다.</p><div class="source-links"><a href="https://hibernate.org/orm/">Hibernate ↗</a><a href="https://eclipse.dev/eclipselink/">EclipseLink ↗</a><a href="https://docs.spring.io/spring-data/jpa/reference/">Spring Data JPA ↗</a><a href="https://mybatis.org/mybatis-3/java-api.html">MyBatis ↗</a><a href="https://www.jooq.org/doc/latest/manual/sql-building/">jOOQ ↗</a><a href="https://docs.spring.io/spring-data/relational/reference/">Spring Data JDBC · R2DBC ↗</a></div></section>
 
-<section class="section" id="experiment" aria-labelledby="experiment-title"><div class="section-kicker">SIDE NOTE / MAPPING COST</div><h2 id="experiment-title">편해진 매핑에는 어떤 비용이 있을까?</h2><p class="lead" style="margin-top:20px">리플렉션으로 반복 코드를 줄이면 실행 비용도 바뀝니다. 저장소에서는 행 수와 필드 수를 바꾸며 수동 매핑과 자동 매핑을 비교했습니다.</p><div class="pair"><div class="explain"><div class="caption">WHAT TO LEARN</div><h3>측정 범위를 먼저 본다.</h3><p>객체 변환만 측정할 때와 SQL 실행·전송까지 포함할 때 비율은 다를 수 있습니다. 행 수뿐 아니라 필드 수, 값 타입, 워밍업과 GC도 결과에 영향을 줍니다.</p></div><div class="explain"><div class="caption">WHAT NOT TO GENERALIZE</div><h3>프레임워크 전체 순위는 아니다.</h3><p>2026-10-30의 로컬 MySQL 실험입니다. JMH나 운영 처리량 측정이 아니며, Spring·DbUtils 전체 파이프라인 비교도 아닙니다. 당시 매퍼와 현재의 조회별 준비 구현을 동일시하지 않습니다.</p></div></div><p>현재 코드의 <code>prepare()</code>는 컬럼과 필드의 연결을 조회별로 준비합니다. 과거 측정값을 이 변경 이후 성능의 증거로 사용하지 않습니다. 원본 보고서에서 환경·측정 구간·원시 결과와 한계를 함께 확인하세요.</p><div class="source-links"><a href="https://github.com/whoisyourbias/simple-jorm/blob/4a97101803756b08a0b91aeb454c16ca74bd0ae6/doc/lab/02-mapping-scaling.md">실험 보고서와 재현 방법 ↗</a><a href="https://github.com/whoisyourbias/simple-jorm/blob/4a97101803756b08a0b91aeb454c16ca74bd0ae6/doc/lab/results/2026-10-30-scaling-v2/tables.md">당시 결과 표 ↗</a></div></section>
+<section class="section" id="experiment" aria-labelledby="experiment-title"><div class="section-kicker">SIDE NOTE / MAPPING COST</div><h2 id="experiment-title">편해진 매핑에는 어떤 비용이 있을까?</h2><p class="lead" style="margin-top:20px">편리한 자동 매핑과 직접 작성한 변환은 준비 과정과 실행 비용이 다를 수 있습니다. 성능을 비교할 때는 측정 범위부터 확인해야 합니다.</p><div class="pair"><div class="explain"><div class="caption">WHAT TO MEASURE</div><h3>실제 업무 경로를 측정한다.</h3><p>행 변환만 측정할 때와 SQL 실행·네트워크·트랜잭션까지 포함할 때 결과는 다릅니다. 행 수·컬럼 수·타입 변환·메타데이터 재사용·워밍업도 영향을 줍니다.</p></div><div class="explain"><div class="caption">WHAT TO READ</div><h3>편의성과 실행 비용을 함께 본다.</h3><p>Spring은 BeanPropertyRowMapper를 편리한 매퍼로 설명하며 고성능이 필요하면 직접 RowMapper를 작성할 수 있다고 안내합니다. 이 설명만으로 프레임워크 전체의 처리량 순위를 정할 수는 없습니다.</p></div></div><div class="source-links"><a href="https://docs.spring.io/spring-framework/docs/6.2.12/javadoc-api/org/springframework/jdbc/core/BeanPropertyRowMapper.html">공식 · BeanPropertyRowMapper 성능 안내 ↗</a></div></section>
 
-<section class="section" id="references" aria-labelledby="references-title"><div class="section-kicker">KEEP EXPLORING</div><h2 id="references-title">설명에서, 실제 코드로.</h2><p style="margin-top:20px;margin-bottom:25px;color:var(--muted)">본문과 실험실은 오프라인으로 작동합니다. 아래 원본 문서·소스·공식 자료 링크는 인터넷 연결이 필요합니다. 저장소 링크는 설명 기준 커밋에 고정했습니다.</p><div class="sources"><div><h3>프로젝트 학습 문서</h3><ul><li><a href="https://github.com/whoisyourbias/simple-jorm/blob/4a97101803756b08a0b91aeb454c16ca74bd0ae6/doc/README.md">전체 학습 문서 목차 ↗</a></li><li><a href="https://github.com/whoisyourbias/simple-jorm/blob/4a97101803756b08a0b91aeb454c16ca74bd0ae6/doc/reference/03-learning-stage-mapping.md">구현과 실제 기술의 대응 ↗</a></li><li><a href="https://github.com/whoisyourbias/simple-jorm/blob/4a97101803756b08a0b91aeb454c16ca74bd0ae6/doc/reference/02-implementation-status.md">지원 범위와 제약 ↗</a></li><li><a href="https://github.com/whoisyourbias/simple-jorm/tree/4a97101803756b08a0b91aeb454c16ca74bd0ae6/src/test/java/com/jorm">구현 동작의 근거 · 테스트 ↗</a></li></ul></div><div><h3>공식 자료부터 더 읽기</h3><ul><li><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/reflect/InvocationHandler.html">JDK 21 · InvocationHandler ↗</a></li><li><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/annotation/RetentionPolicy.html">JDK 21 · 어노테이션 보존 정책 ↗</a></li><li><a href="https://docs.spring.io/spring-framework/reference/core/aop/proxying.html">Spring · 프록시와 자기 호출 ↗</a></li><li><a href="https://jakarta.ee/specifications/persistence/3.2/jakarta-persistence-spec-3.2.html">Jakarta Persistence 3.2 명세 ↗</a></li></ul></div></div></section>
-<footer><span>simple-jorm · 직접 만들며 이해하는 Java 데이터 접근</span><span>설명 기준 2026. 11. 03 · 소스 4a97101<br>JPA 호환 구현체가 아닌 학습 프로젝트입니다.</span></footer>
-</main></div>
+<section class="section" id="references" aria-labelledby="references-title"><div class="section-kicker">KEEP EXPLORING</div><h2 id="references-title">설명에서, 실제 코드로.</h2><p style="margin-top:20px;margin-bottom:25px;color:var(--muted)">본문과 시각화는 오프라인으로 작동합니다. 공식 문서와 소스 링크는 인터넷 연결이 필요합니다. Spring 설명은 6.2 기본 설정, MyBatis는 3 계열, JPA 표준은 Jakarta Persistence 3.2를 기준으로 합니다. Hibernate의 구체적인 실행 전략은 provider와 버전에 따라 달라질 수 있습니다.</p><div class="sources"><div><h3>Spring · API와 소스</h3><div class="source-links"><a href="https://docs.spring.io/spring-framework/docs/6.2.12/javadoc-api/org/springframework/jdbc/core/package-summary.html">Spring JDBC 6.2.12 API ↗</a><a href="https://github.com/spring-projects/spring-framework/blob/v6.2.12/spring-tx/src/main/java/org/springframework/transaction/interceptor/TransactionInterceptor.java">TransactionInterceptor 소스 ↗</a><a href="https://docs.spring.io/spring-framework/docs/6.2.12/javadoc-api/org/springframework/jdbc/datasource/DataSourceTransactionManager.html">DataSourceTransactionManager API ↗</a></div></div><div><h3>SQL Mapper와 ORM</h3><div class="source-links"><a href="https://mybatis.org/mybatis-3/">MyBatis 공식 문서 ↗</a><a href="https://mybatis.org/mybatis-3/xref/org/apache/ibatis/binding/MapperProxy.html">MyBatis MapperProxy 소스 ↗</a><a href="https://jakarta.ee/specifications/persistence/3.2/jakarta-persistence-spec-3.2.html">Jakarta Persistence 3.2 명세 ↗</a><a href="https://docs.hibernate.org/orm/7.1/userguide/html_single/">Hibernate ORM 7.1 사용자 가이드 ↗</a></div></div></div></section><footer><span>ORM.inside · Java 데이터 접근의 실행 원리</span><span>공식 문서·소스를 바탕으로 한 교육용 안내<br>설명 확인 2026. 11. 04</span></footer></main></div>
 <script id="lab-core">
 /* No DOM dependency: this is also exercised by the Node state-transition tests. */
-globalThis.JormLab = (() => {
+globalThis.OrmLab = (() => {
   'use strict';
   const code = {
-    annotation: ['@Target(ElementType.METHOD)', '@Retention(RetentionPolicy.RUNTIME)', 'public @interface Select {', '  String value();', '}', '// .class의 메타데이터 → 실행 중 조회 가능'],
-    factory: ['Object proxy = Proxy.newProxyInstance(', '  mapperType.getClassLoader(),', '  new Class<?>[] { mapperType },', '  new MapperInvocationHandler(jdbcTemplate)', ');', 'return mapperType.cast(proxy);'],
-    call: ['UserMapper mapper = MapperFactory.create(', '  UserMapper.class, jdbc);', '', 'User user = mapper.findById(1L);', '', '// JDK가 handler.invoke(proxy, method, args)로 전달'],
-    handler: ['public Object invoke(Object proxy,', '    Method method, Object[] args) throws Throwable {', '  Select select = method.getAnnotation(Select.class);', '  String sql = select.value();', '  return jdbcTemplate.queryForObject(sql,', '    new BeanPropertyRowMapper<>(User.class), args);', '} // 실제 반환 타입 판별 분기는 설명을 위해 축약'],
-    jdbc: ['// JdbcTemplate 내부의 실행 절차를 축약', 'transactions.withConnection(connection -> {', '  // PreparedStatement 생성', '  ps.setObject(1, args[0]);', '  ResultSet rs = ps.executeQuery();', '  // 결과를 RowMapper로 전달', '});'],
-    mapping: ['// BeanPropertyRowMapper 내부 · 설명용 의사 코드', 'Property[] mapping = prepareColumns(rs); // 조회별 prepare', 'User result = constructor.newInstance();', 'Object value = convert(rs.getObject(1), mapping[0].type());', 'writeBySetterOrField(result, mapping[0], value);', 'return result; // 다른 컬럼도 같은 방식으로 처리'],
-    result: ['// 반환 방향을 나타내는 설명용 의사 코드', 'RowMapper → JdbcTemplate → InvocationHandler', 'InvocationHandler → JDK Proxy → 호출자', '', 'User user = mapper.findById(1L);', '// user.id == 1L, user.name.equals("Alice")'],
-    missing: ['// MapperInvocationHandler의 검증', 'if (annotationCount == 0) {', '  throw new UnsupportedOperationException(', '    "어노테이션이 없는 메서드입니다: " + method.getName()', '  );', '}'],
-    object: ['if (method.getDeclaringClass() == Object.class) {', '  return switch (method.getName()) {', '    case "toString" -> "MapperProxy";', '    case "hashCode" -> System.identityHashCode(proxy);', '    case "equals" -> proxy == args[0];', '    default -> throw new IllegalArgumentException();', '  };', '}'],
-    txHandler: ['Method implementationMethod = target.getClass()', '  .getMethod(method.getName(), method.getParameterTypes());', 'if (!implementationMethod.isAnnotationPresent(', '    Transactional.class)) {', '  return invokeTarget(implementationMethod, args);', '}', 'return transactions.execute(() -> {', '  return invokeTarget(implementationMethod, args);', '}); // 롤백 규칙 판별·커밋할 업무 예외 재전파는 축약'],
-    txExternal: ['// 외부 호출: Service 프록시를 통과', 'service.transfer();', '', '// 실제 구현 메서드', '@Transactional(rollbackFor = SQLException.class)', 'public void transfer() throws SQLException {', '  accounts.withdraw(30, 1);', '  accounts.deposit(30, 2); // 상한 제약으로 실패', '}'],
-    txSelf: ['// 프록시의 진입 메서드에는 어노테이션이 없다', 'public void transferViaSelf() throws SQLException {', '  this.transfer(); // target 내부의 직접 호출', '}', '@Transactional(rollbackFor = SQLException.class)', 'public void transfer() throws SQLException {', '  accounts.withdraw(30, 1);', '  accounts.deposit(30, 2); // 상한 제약으로 실패', '}'],
-    txOuter: ['@Transactional(rollbackFor = SQLException.class)', 'public void transferViaTransactionalSelf()', '    throws SQLException {', '  this.transfer(); // 기존 트랜잭션은 유지', '}', '@Transactional(rollbackFor = SQLException.class)', 'public void transfer() throws SQLException {', '  accounts.withdraw(30, 1);', '  accounts.deposit(30, 2); // 상한 제약으로 실패', '}'],
-    txFinish: ['// TransactionManager의 종료 경로 · 설명용 축약', 'try {', '  result = callback.execute();', '  connection.commit(); // rollbackOnly 검사·beforeCommit 완료 후', '} catch (SQLException | RuntimeException | Error e) {', '  connection.rollback();', '  throw e;', '} // finally: ThreadLocal 제거, 연결 정리']
-  };
-  const frame = (title, description, nodes, source, lines, values, note, extra = {}) =>
-    ({ title, description, nodes, source, lines, values, note, ...extra });
-  const sql = 'SELECT id, name FROM users WHERE id = ?';
-  const input = '① Long: 1L';
+  "annotation": [
+    "// MyBatis 설정 분석 과정 · 설명용 의사 코드",
+    "@Select(\"SELECT id, name FROM users WHERE id = #{id}\")",
+    "User findById(@Param(\"id\") Long id);",
+    "",
+    "// XML / 어노테이션 → MappedStatement 등록"
+  ],
+  "factory": [
+    "// MyBatis 프록시 획득 · 설명용 의사 코드",
+    "UserMapper mapper = sqlSession.getMapper(UserMapper.class);",
+    "// MapperRegistry → MapperProxyFactory",
+    "// JDK Proxy에 MapperProxy(sqlSession, ...) 연결"
+  ],
+  "call": [
+    "UserMapper mapper = session.getMapper(UserMapper.class);",
+    "",
+    "User user = mapper.findById(1L);",
+    "",
+    "// JDK Proxy → MapperProxy.invoke(proxy, method, args)"
+  ],
+  "handler": [
+    "// MapperProxy → MapperMethod · 설명용 의사 코드",
+    "if (method.getDeclaringClass() == Object.class)",
+    "  return method.invoke(this, args);",
+    "return cachedInvoker(method).invoke(proxy, method, args, sqlSession);",
+    "// 일반 메서드: MapperMethod.execute(sqlSession, args)",
+    "// @Param 이름 → 파라미터 객체 → selectOne(statementId, param)"
+  ],
+  "jdbc": [
+    "// MyBatis 실행 계층 · 설명용 의사 코드",
+    "SqlSession → Executor → StatementHandler",
+    "ParameterHandler → LongTypeHandler",
+    "ps.setLong(1, 1L); // #{id}의 값",
+    "ResultSet rs = ps.executeQuery();",
+    "ResultSetHandler → ResultMap → TypeHandler"
+  ],
+  "mapping": [
+    "// MyBatis 결과 처리 · 설명용 의사 코드",
+    "ResultMap + ResultSetHandler",
+    "LongTypeHandler → id 값 읽기",
+    "StringTypeHandler → name 값 읽기",
+    "자동 매핑 / 명시적 프로퍼티·생성자 매핑",
+    "return user;"
+  ],
+  "result": [
+    "// 반환 방향 · 설명용 의사 코드",
+    "ResultSetHandler → Executor → SqlSession",
+    "MapperMethod → MapperProxy → JDK Proxy → 호출자",
+    "",
+    "User user = mapper.findById(1L);",
+    "// user.id == 1L, user.name.equals(\"Alice\")"
+  ],
+  "missing": [
+    "// MapperMethod.SqlCommand · 설명용 의사 코드",
+    "statementId = mapperInterface.getName() + \".\" + method.getName();",
+    "if (!configuration.hasStatement(statementId))",
+    "  throw new BindingException(\"Invalid bound statement (not found)\");",
+    "// XML / 어노테이션 어디에도 SQL이 없는 추상 메서드 가정"
+  ],
+  "object": [
+    "// MapperProxy의 Object 경로 · 설명용 의사 코드",
+    "if (Object.class.equals(method.getDeclaringClass())) {",
+    "  return method.invoke(this, args); // this는 MapperProxy",
+    "}",
+    "// toString 결과: org.apache.ibatis.binding.MapperProxy@..."
+  ],
+  "default": [
+    "// MapperProxy의 default 경로 · 설명용 의사 코드",
+    "cachedInvoker(method) → DefaultMethodInvoker",
+    "methodHandle.bindTo(proxy).invokeWithArguments(args);",
+    "",
+    "default User first() {",
+    "  return findById(1L); // 프록시로 재진입",
+    "}"
+  ],
+  "txHandler": [
+    "// Spring 선언적 경계 · 설명용 의사 코드",
+    "TransactionInterceptor.invoke(invocation)",
+    "  → TransactionAspectSupport.invokeWithinTransaction(...)",
+    "  → manager.getTransaction(transactionAttribute)",
+    "  → invocation.proceed(); // 실제 Service 호출",
+    "  → 예외와 rollbackOn 규칙에 따라 commit / rollback"
+  ],
+  "txExternal": [
+    "// 외부 호출: Spring Service 프록시 통과",
+    "service.transfer();",
+    "",
+    "// Spring bean의 실제 업무 메서드",
+    "@Transactional",
+    "public void transfer() {",
+    "  jdbc.update(withdrawSql, 30, 1L);",
+    "  jdbc.update(depositSql, 30, 2L); // 제약 위반",
+    "}"
+  ],
+  "txSelf": [
+    "// 바깥 진입 메서드는 비트랜잭션",
+    "public void transferViaSelf() {",
+    "  this.transfer(); // target 내부 직접 호출",
+    "}",
+    "@Transactional",
+    "public void transfer() {",
+    "  jdbc.update(withdrawSql, 30, 1L);",
+    "  jdbc.update(depositSql, 30, 2L); // 제약 위반",
+    "}"
+  ],
+  "txOuter": [
+    "@Transactional",
+    "public void transferViaTransactionalSelf() {",
+    "  this.transfer(); // 기존 트랜잭션 유지",
+    "}",
+    "",
+    "@Transactional",
+    "public void transfer() {",
+    "  jdbc.update(withdrawSql, 30, 1L);",
+    "  jdbc.update(depositSql, 30, 2L); // 제약 위반",
+    "}"
+  ],
+  "txFinish": [
+    "// TransactionAspectSupport의 판단 · 설명용 의사 코드",
+    "try { result = invocation.proceed(); }",
+    "catch (Throwable ex) {",
+    "  if (transactionAttribute.rollbackOn(ex)) manager.rollback(status);",
+    "  else manager.commit(status); // checked 기본 예외 등",
+    "  throw ex;",
+    "}",
+    "// 정상 반환 → commit. rollbackOnly·동기화·정리 과정은 생략"
+  ]
+};
+  const frame = (title, description, nodes, source, lines, values, note, extra = {}) => ({title, description, nodes, source, lines, values, note, ...extra});
   const scenarios = {
-    mapper: { kind: 'mapper', label: '정상 조회', steps: [
-      frame('어노테이션은 실행 코드가 아닌, 읽을 수 있는 정보다.', '컴파일러가 RUNTIME 어노테이션을 클래스 파일에 기록합니다. 이 순간에는 SQL이 실행되지 않습니다. 런타임 리플렉션이 그 정보를 읽을 수 있습니다.', ['client'], 'annotation', [1,3], [['보존 정책','RUNTIME'],['위치','인터페이스의 Method 메타데이터'],['SQL 실행','아직 실행하지 않음']], '준비 단계 · 소스 → .class → 실행 중 메타데이터 조회'),
-      frame('클래스 로더·인터페이스·핸들러를 JDK에 전달한다.', 'UserMapper.class는 타입 정보입니다. 팩토리는 인터페이스인지 검사하고, 어떤 타입을 구현할지와 호출을 맡을 핸들러를 함께 전달합니다.', ['client','proxy'], 'factory', [0,1,2,3], [['인터페이스','Class<UserMapper>'],['클래스 로더','mapperType.getClassLoader()'],['핸들러','new MapperInvocationHandler(jdbc)']], '생성 요청 · 아직 findById는 호출하지 않았습니다.'),
-      frame('프록시 객체와 핸들러가 연결된다.', 'JDK는 프록시 클래스를 생성하거나 재사용해 새 프록시 인스턴스를 만듭니다. 이 객체는 UserMapper를 구현합니다. 직접 만든 UserMapperImpl은 없습니다.', ['proxy','handler'], 'factory', [0,3,5], [['객체 타입','UserMapper를 구현한 JDK Proxy'],['연결된 객체','MapperInvocationHandler'],['Mapper target','별도 구현 객체 없음']], '프록시 생성 · 생성 클래스 이름은 JDK가 결정합니다.'),
-      frame('① 인자 1L을 가지고 메서드를 호출한다.', '호출자는 보통의 UserMapper처럼 사용합니다. 실제로 호출을 받는 객체는 방금 만든 프록시입니다.', ['client','proxy'], 'call', [3], [['① 호출 인자',input],['호출 메서드','UserMapper.findById(Long)'],['반환 예정 타입','User']], '호출 코드 → 프록시 · ①이 전달됩니다.'),
-      frame('메서드 호출이 invoke(proxy, method, args)로 들어온다.', 'method는 메서드 이름 문자열이 아닌 Method 객체입니다. args는 인자 배열입니다. proxy는 호출받은 프록시 자신이며 실제 Service target과는 다릅니다.', ['proxy','handler'], 'handler', [0,1], [['proxy','UserMapper 프록시 객체'],['method','Method: UserMapper.findById(Long)'],['args[0]',input]], '프록시 → 핸들러 · ① 1L → args[0]'),
-      frame('② 인터페이스 메서드에서 @Select의 SQL을 꺼낸다.', '직접 작성한 핸들러가 method.getAnnotation(Select.class)를 실행합니다. SQL 어노테이션이 정확히 하나인지 검증한 뒤 value()로 문자열을 얻습니다.', ['handler'], 'handler', [2,3], [['읽는 타입','com.jorm.mapper.Select'],['② SQL',sql],['① 파라미터 배열','Object[] { 1L }']], '핸들러 안에서 메타데이터 해석 · 어노테이션이 스스로 동작하지 않습니다.'),
-      frame('① args[0]을 ② SQL의 첫 번째 ?에 바인딩한다.', 'JdbcTemplate이 현재 트랜잭션 연결 또는 호출 전용 연결을 얻습니다. setObject(1, 1L)로 바인딩하고 DB가 SQL을 실행합니다. 문자열 이어붙이기가 아닙니다.', ['handler','jdbc','db'], 'jdbc', [1,3,4], [['① 첫 번째 ?','ps.setObject(1, 1L)'],['② 실행 SQL',sql],['DB 결과 행','id=1, name=Alice (설명용 데이터)']], '핸들러 → JdbcTemplate → DB · JDBC 인덱스는 1부터 시작'),
-      frame('③ 결과 행을 새 User 객체로 바꾼다.', '자동 매퍼가 조회별 컬럼-프로퍼티 연결을 준비하고 기본 생성자로 객체를 만듭니다. 기본 타입을 안전하게 변환한 뒤 public setter를 우선 사용하고, 없으면 선언 필드에 넣습니다. 커서를 이동시키는 쪽은 JdbcTemplate입니다.', ['db','row'], 'mapping', [1,2,3,4,5], [['DB 결과','id=1, name=Alice'],['변환 방법','생성자 + setter / 필드 fallback'],['③ 결과 객체','User { id=1, name=Alice }']], 'DB 결과 → RowMapper · ③ 새 객체 생성'),
-      frame('③ 객체가 프록시를 거쳐 호출자에게 돌아온다.', 'RowMapper의 결과를 JDBC 실행기와 핸들러가 반환하고, 프록시가 User 타입의 호출 결과로 전달합니다. 선언한 반환 타입과 호환되어야 합니다.', ['handler','proxy','client'], 'result', [1,2,4,5], [['① 사용한 ID',input],['② 실행한 SQL',sql],['③ 반환값','User { id=1, name=Alice }']], '반환 · 핸들러 → 프록시 → 호출자', { outcome: '조회 완료 · User(Alice) 반환' })
-    ] },
-    missing: { kind: 'mapper', label: '어노테이션 누락', steps: [
-      frame('선언만 있는 메서드도 프록시로 호출할 수 있다.', '이 시각화는 SQL 어노테이션 없는 User findById(Long id) 선언을 가정합니다. 이 구현은 생성 시 모든 메서드를 검사하지 않고 호출 시 검증합니다.', ['client','proxy'], 'call', [3], [['호출','findById(1L)'],['메서드 SQL 표시','없음'],['① 인자',input]], '호출 코드 → 프록시'),
-      frame('핸들러가 네 종류의 SQL 어노테이션을 확인한다.', '@Select·@Insert·@Update·@Delete가 모두 없으므로 annotationCount는 0입니다. 실행할 SQL을 결정할 수 없습니다.', ['proxy','handler'], 'missing', [1], [['annotationCount','0'],['② SQL','없음'],['JDBC 실행','진입하지 않음']], '핸들러의 선언 검증'),
-      frame('SQL 실행 전에 UnsupportedOperationException이 발생한다.', '어노테이션이 없는 메서드라는 예외가 프록시를 통해 호출자에게 전달됩니다. DB 연결이나 결과 매핑으로 진행하지 않습니다.', ['handler','proxy','client'], 'missing', [2,3,4], [['예외 타입','UnsupportedOperationException'],['② SQL','실행하지 않음'],['결과','User 객체 반환 없음']], '예외 반환 · DB 호출 없음', { outcome: '선언 오류 · SQL 미실행' })
-    ] },
-    object: { kind: 'mapper', label: 'toString 별도 처리', steps: [
-      frame('toString() 호출도 핸들러로 전달된다.', 'equals·hashCode·toString은 JDK 프록시의 핸들러로 들어옵니다. 인자 없는 toString 호출에서 args는 null일 수 있습니다.', ['client','proxy','handler'], 'object', [0], [['method','Method: Object.toString()'],['args','null · 인자 없음'],['선언 클래스','java.lang.Object']], '호출 코드 → 프록시 → 핸들러'),
-      frame('Object 메서드는 SQL 어노테이션 검사 전에 분기한다.', 'SQL 표시가 없다는 이유로 오류를 내지 않습니다. MapperInvocationHandler가 Object에 선언된 메서드인지 먼저 확인합니다.', ['handler'], 'object', [0,1,2], [['분기 기준','method.getDeclaringClass()'],['선택된 처리','toString'],['② SQL','검사·실행하지 않음']], '일반 Mapper 메서드 처리와 다른 분기'),
-      frame('문자열 "MapperProxy"를 반환한다.', '이 문자열은 자체 핸들러가 정한 표현입니다. 실제 프록시 클래스 이름을 출력한 것이 아니며 DB 조회 결과도 아닙니다.', ['handler','proxy','client'], 'object', [2], [['반환 타입','String'],['반환값','"MapperProxy"'],['DB 호출','없음']], '핸들러 → 프록시 → 호출자', { outcome: 'toString 완료 · MapperProxy' })
-    ] }
-  };
-  function transactionScenario(name, label, isSelf, hasOuterTx) {
-    const source = name === 'external' ? 'txExternal' : isSelf && !hasOuterTx ? 'txSelf' : 'txOuter';
-    const transactional = !isSelf || hasOuterTx;
-    const withdrawLine = source === 'txExternal' || source === 'txSelf' ? 6 : 7;
-    const depositLine = withdrawLine + 1;
-    const connection = transactional ? 'C1 · autoCommit=false' : '호출별 연결 · autoCommit=true';
-    const base = (title, description, nodes, src, lines, values, note, balances = [100,100], extra = {}) =>
-      frame(title, description, nodes, src, lines, values, note, { balances, ...extra });
-    return { kind: 'transaction', label, steps: [
-      base('먼저, 외부 호출이 Service 프록시로 들어간다.', isSelf ? '바깥 진입 메서드가 어떤 표시를 갖는지에 따라 경계가 달라집니다. 안쪽 transfer의 어노테이션이 자동으로 탐색되는 것은 아닙니다.' : '호출자는 실제 Service target 대신 TransactionProxyFactory로 만든 인터페이스 프록시를 호출합니다.', ['client','proxy'], source, source === 'txExternal' ? [0,1] : [0,1,2], [['진입 경로',label],['초기 잔액','100 / 100'],['현재 트랜잭션','아직 없음']], '외부 → Service 프록시'),
-      base('인터페이스 Method로 실제 구현 메서드를 찾는다.', 'target.getClass().getMethod(...)로 같은 이름과 파라미터의 구현 메서드를 찾습니다. 이 프로젝트의 @Transactional은 그 구현 메서드에서 검사합니다.', ['proxy','target'], 'txHandler', [0,1,2,3], [['검사 위치','실제 Service 구현 메서드'],['@Transactional',transactional ? '있음' : '없음'],['target','TransferServiceImpl 객체']], 'Mapper와의 차이 · 호출할 실제 target이 있습니다.'),
-      transactional
-        ? base('관리자가 C1 연결로 트랜잭션을 시작한다.', hasOuterTx ? '바깥 메서드가 먼저 트랜잭션을 시작합니다. this.transfer()는 프록시를 다시 거치지 않지만 이미 등록된 C1 연결은 유지됩니다.' : 'transactions.execute가 autoCommit을 끄고 현재 스레드에 연결을 보관한 뒤 target의 업무 메서드를 호출합니다.', ['proxy','manager','target'], 'txHandler', [6,7], [['Connection',connection],['연결 공유 조건','같은 스레드 + 같은 관리자'],['자기 호출',hasOuterTx ? '새 경계 없음 · 기존 C1 사용' : '이 경로에는 없음']], '프록시 → 관리자 → target')
-        : base('this.transfer()는 프록시를 다시 통과하지 않는다.', '바깥 메서드는 표시가 없어 target으로 바로 위임됩니다. this는 실제 target이므로 내부 transfer의 @Transactional 검사와 트랜잭션 시작을 건너뜁니다.', ['proxy','target'], source, [0,1,2,4], [['this','실제 Service target'],['Connection','등록된 트랜잭션 연결 없음'],['안쪽 @Transactional','이번 자기 호출에서는 미검사']], 'target → target · Service 프록시 재진입 없음'),
-      base('출금 30은 성공한다. 보내는 계좌는 70.', transactional ? 'Mapper와 JdbcTemplate이 관리자에 등록된 C1을 재사용합니다. 출금의 효과는 아직 커밋되지 않았습니다. 다른 연결에 보이는 잔액을 뜻하지 않습니다.' : '출금 SQL이 호출 전용 연결에서 실행되고 자동 커밋됩니다. 이후 다른 SQL이 실패해도 이 확정은 별도로 남습니다.', ['target','jdbc','db'], source, [withdrawLine], [['Connection',connection],['출금 SQL','balance = balance - 30'],['출금 상태',transactional ? '미확정 · 이후 롤백 가능' : '자동 커밋됨']], transactional ? '진행 중 효과 · 70 / 100 (미확정)' : '출금 확정 · 70 / 100', [70,100]),
-      base('입금이 상한 120을 넘어서 SQLException이 발생한다.', '받는 계좌 100에 30을 더하면 130이 됩니다. 테스트의 CHECK 제약으로 입금 SQL은 실패하므로 받는 계좌는 100을 유지합니다.', ['jdbc','db'], source, [depositLine], [['실패 원인','130 > 잔액 상한 120'],['예외','SQLException'],['출금 상태',transactional ? '아직 미확정' : '이미 커밋됨']], '입금 실패 · 받는 계좌의 130은 저장되지 않음', [70,100]),
-      base('실패가 호출 경계를 따라 바깥으로 전파된다.', transactional ? '선언적 경계에 명시한 rollbackFor = SQLException.class가 적용됩니다. 관리자가 현재 트랜잭션을 롤백하는 경로로 들어갑니다.' : '예외는 호출자에게 전파되지만 롤백할 업무 트랜잭션이 없습니다. 이 시나리오에서는 출금의 자동 커밋을 되돌릴 수 없습니다.', transactional ? ['db','manager'] : ['target','proxy'], transactional ? 'txFinish' : source, transactional ? [4] : [2,depositLine], [['예외','SQLException'],['관리자 경계',transactional ? '활성 · rollback 처리' : '시작하지 않았음'],['현재 효과','70 / 100']], transactional ? '예외 → 트랜잭션 관리자' : '예외 → 호출자 · 전체 rollback 경계 없음', [70,100]),
-      base(transactional ? '전체 롤백. 두 계좌가 다시 100 / 100.' : '부분 반영. 70 / 100이 최종 잔액으로 남는다.', transactional ? '출금까지 롤백하고 현재 스레드 상태와 연결을 정리한 뒤 원래 SQLException을 다시 전달합니다. 바깥 트랜잭션이 있으면 자기 호출도 그 안에 포함됩니다.' : '입금만 실패했고 출금은 이미 커밋되었습니다. 어노테이션의 존재보다 프록시를 통과해 경계가 시작되었는지가 결과를 결정합니다.', transactional ? ['manager','proxy','client'] : ['proxy','client'], transactional ? 'txFinish' : source, transactional ? [5,6,7] : [2], [['최종 잔액',transactional ? '100 / 100' : '70 / 100'],['업무 결과',transactional ? '전체 rollback' : '출금만 자동 커밋됨'],['호출자에게','SQLException 전파']], transactional ? '트랜잭션 종료 · 최종 확정 잔액' : '트랜잭션 없음 · 최종 확정 잔액', transactional ? [100,100] : [70,100], { outcome: transactional ? '실패 · 출금까지 롤백' : '실패 · 출금이 남음' })
-    ] };
+  "mapper": {
+    "kind": "mapper",
+    "label": "정상 조회",
+    "steps": [
+      {
+        "title": "SQL 선언을 MappedStatement로 등록한다.",
+        "description": "MyBatis는 설정 분석 과정에서 XML 또는 @Select를 읽어 MappedStatement를 만듭니다. 아직 findById 호출이나 SQL 실행은 없습니다.",
+        "nodes": [
+          "client"
+        ],
+        "source": "annotation",
+        "lines": [
+          1,
+          2,
+          4
+        ],
+        "values": [
+          [
+            "선언",
+            "@Select / XML"
+          ],
+          [
+            "등록 식별자",
+            "UserMapper의 전체 이름 + .findById"
+          ],
+          [
+            "SQL 실행",
+            "아직 없음"
+          ]
+        ],
+        "note": "준비 · 선언 → 설정 메타데이터"
+      },
+      {
+        "title": "SqlSession.getMapper()로 프록시를 얻는다.",
+        "description": "MapperRegistry와 MapperProxyFactory가 Mapper 인터페이스의 프록시 생성을 연결합니다. 인터페이스를 구현하는 객체에 호출 처리기 MapperProxy가 붙습니다.",
+        "nodes": [
+          "client",
+          "proxy"
+        ],
+        "source": "factory",
+        "lines": [
+          1,
+          2,
+          3
+        ],
+        "values": [
+          [
+            "인터페이스",
+            "UserMapper.class"
+          ],
+          [
+            "처리기",
+            "MapperProxy"
+          ],
+          [
+            "실행 연결",
+            "SqlSession"
+          ]
+        ],
+        "note": "프록시 생성 · JDBC 실행은 아직 없습니다."
+      },
+      {
+        "title": "프록시의 호출 처리기는 MapperProxy다.",
+        "description": "JDK Proxy는 UserMapper 메서드 호출을 MapperProxy.invoke로 전달합니다. MapperProxy는 SqlSession과 메서드 실행기 캐시를 보관합니다.",
+        "nodes": [
+          "proxy",
+          "handler"
+        ],
+        "source": "handler",
+        "lines": [
+          0,
+          3
+        ],
+        "values": [
+          [
+            "프록시",
+            "UserMapper를 구현한 JDK Proxy"
+          ],
+          [
+            "처리기",
+            "MapperProxy"
+          ],
+          [
+            "메서드 캐시",
+            "Method → MapperMethodInvoker"
+          ]
+        ],
+        "note": "연결 · 인터페이스 호출 → 실행 처리기"
+      },
+      {
+        "title": "① 인자 1L을 가지고 메서드를 호출한다.",
+        "description": "호출자는 평범한 UserMapper처럼 사용합니다. 실제로 호출을 받는 객체는 생성된 프록시이며 인자는 Object[]로 처리기에 전달됩니다.",
+        "nodes": [
+          "client",
+          "proxy"
+        ],
+        "source": "call",
+        "lines": [
+          2,
+          4
+        ],
+        "values": [
+          [
+            "① 호출 인자",
+            "Long: 1L"
+          ],
+          [
+            "호출 메서드",
+            "UserMapper.findById(Long)"
+          ],
+          [
+            "반환 예정",
+            "User"
+          ]
+        ],
+        "note": "호출 코드 → JDK Proxy"
+      },
+      {
+        "title": "cachedInvoker가 일반 메서드 실행기를 선택한다.",
+        "description": "MapperProxy는 cachedInvoker(method)를 재사용하거나 생성합니다. 일반 SQL 메서드는 PlainMethodInvoker의 MapperMethod로 실행되고, Object·default 메서드는 별도 분기입니다.",
+        "nodes": [
+          "proxy",
+          "handler"
+        ],
+        "source": "handler",
+        "lines": [
+          1,
+          3,
+          4
+        ],
+        "values": [
+          [
+            "경로",
+            "cachedInvoker → PlainMethodInvoker"
+          ],
+          [
+            "메서드 정보",
+            "MapperMethod"
+          ],
+          [
+            "① 인자",
+            "Object[] { 1L }"
+          ]
+        ],
+        "note": "호출 해석 · 매번 어노테이션을 직접 읽지 않습니다."
+      },
+      {
+        "title": "② SqlSession에 SQL 식별자와 이름 파라미터를 전달한다.",
+        "description": "MapperMethod가 @Param(\"id\")를 이름 파라미터로 연결하고 SqlSession.selectOne을 호출합니다. 등록된 MappedStatement와 Executor가 실행 경로를 이어갑니다.",
+        "nodes": [
+          "handler",
+          "jdbc"
+        ],
+        "source": "handler",
+        "lines": [
+          4,
+          5
+        ],
+        "values": [
+          [
+            "② 등록 SQL",
+            "SELECT id, name FROM users WHERE id = #{id}"
+          ],
+          [
+            "파라미터",
+            "{ id: 1L }"
+          ],
+          [
+            "실행 계층",
+            "SqlSession → Executor"
+          ]
+        ],
+        "note": "MapperMethod → SqlSession → Executor"
+      },
+      {
+        "title": "TypeHandler가 ①을 ② SQL의 ?에 바인딩한다.",
+        "description": "캐시 적중이 없는 조회를 가정합니다. Executor와 StatementHandler가 문장을 준비하고 ParameterHandler의 LongTypeHandler가 setLong(1, 1L)을 호출합니다. DB가 SQL을 실행합니다.",
+        "nodes": [
+          "jdbc",
+          "db"
+        ],
+        "source": "jdbc",
+        "lines": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "values": [
+          [
+            "① 첫 번째 ?",
+            "ps.setLong(1, 1L)"
+          ],
+          [
+            "② 실행 SQL",
+            "SELECT id, name FROM users WHERE id = ?"
+          ],
+          [
+            "DB 결과 행",
+            "id=1, name=Alice (설명용 데이터)"
+          ]
+        ],
+        "note": "MyBatis → JDBC → DB · TypeHandler는 타입별로 다릅니다."
+      },
+      {
+        "title": "③ ResultMap과 TypeHandler로 행을 객체에 매핑한다.",
+        "description": "ResultSetHandler가 ResultMap의 설정과 자동 매핑 규칙을 사용합니다. TypeHandler가 컬럼 값을 Java 타입으로 읽고 생성자·프로퍼티 등 설정된 매핑으로 User를 구성합니다.",
+        "nodes": [
+          "db",
+          "row"
+        ],
+        "source": "mapping",
+        "lines": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "values": [
+          [
+            "DB 결과",
+            "id=1, name=Alice"
+          ],
+          [
+            "변환",
+            "ResultMap + TypeHandler"
+          ],
+          [
+            "③ 결과 객체",
+            "User { id=1, name=Alice }"
+          ]
+        ],
+        "note": "DB 결과 → MyBatis 결과 처리"
+      },
+      {
+        "title": "③ 객체가 프록시를 거쳐 호출자에게 돌아온다.",
+        "description": "단건 결과가 SqlSession과 MapperMethod를 거쳐 반환됩니다. MyBatis selectOne은 0행이면 null, 2행 이상이면 TooManyResultsException입니다.",
+        "nodes": [
+          "row",
+          "jdbc",
+          "handler",
+          "proxy",
+          "client"
+        ],
+        "source": "result",
+        "lines": [
+          1,
+          2,
+          4,
+          5
+        ],
+        "values": [
+          [
+            "① 사용한 ID",
+            "1L"
+          ],
+          [
+            "② 실행한 SQL",
+            "SELECT id, name FROM users WHERE id = ?"
+          ],
+          [
+            "③ 반환값",
+            "User { id=1, name=Alice }"
+          ]
+        ],
+        "note": "반환 · SqlSession → MapperProxy → 호출자",
+        "outcome": "조회 완료 · User(Alice) 반환"
+      }
+    ]
+  },
+  "missing": {
+    "kind": "mapper",
+    "label": "SQL 미등록",
+    "steps": [
+      {
+        "title": "SQL이 등록되지 않은 추상 메서드를 호출한다.",
+        "description": "이 예제는 XML과 어노테이션 어디에도 해당 메서드의 MappedStatement가 없는 경우입니다. 어노테이션이 없는 것만으로 오류가 결정되지는 않습니다.",
+        "nodes": [
+          "client",
+          "proxy"
+        ],
+        "source": "call",
+        "lines": [
+          2
+        ],
+        "values": [
+          [
+            "호출",
+            "findById(1L)"
+          ],
+          [
+            "SQL 등록",
+            "없음"
+          ],
+          [
+            "인자",
+            "1L"
+          ]
+        ],
+        "note": "호출 코드 → 프록시"
+      },
+      {
+        "title": "MapperMethod가 매핑된 SQL을 찾지 못한다.",
+        "description": "메서드 식별자에 대응하는 MappedStatement를 찾지 못합니다. default 메서드나 Object 메서드가 아닌 일반 추상 Mapper 메서드입니다.",
+        "nodes": [
+          "proxy",
+          "handler"
+        ],
+        "source": "missing",
+        "lines": [
+          1,
+          2
+        ],
+        "values": [
+          [
+            "등록 식별자",
+            "UserMapper.findById"
+          ],
+          [
+            "MappedStatement",
+            "찾을 수 없음"
+          ],
+          [
+            "JDBC",
+            "진입하지 않음"
+          ]
+        ],
+        "note": "SQL 등록 검증"
+      },
+      {
+        "title": "BindingException을 호출자에게 전달한다.",
+        "description": "Invalid bound statement 오류로 끝납니다. JDBC 실행이나 결과 매핑이 일어나지 않으며 반환할 User도 없습니다.",
+        "nodes": [
+          "handler",
+          "proxy",
+          "client"
+        ],
+        "source": "missing",
+        "lines": [
+          3
+        ],
+        "values": [
+          [
+            "예외",
+            "BindingException"
+          ],
+          [
+            "SQL",
+            "실행하지 않음"
+          ],
+          [
+            "결과",
+            "객체 반환 없음"
+          ]
+        ],
+        "note": "예외 · DB 호출 없음",
+        "outcome": "SQL 미등록 · BindingException"
+      }
+    ]
+  },
+  "object": {
+    "kind": "mapper",
+    "label": "Object 메서드",
+    "steps": [
+      {
+        "title": "toString()도 MapperProxy로 전달된다.",
+        "description": "JDK 프록시는 Object의 equals·hashCode·toString도 호출 처리기로 보냅니다. 인자가 없는 toString의 args는 null일 수 있습니다.",
+        "nodes": [
+          "client",
+          "proxy",
+          "handler"
+        ],
+        "source": "object",
+        "lines": [
+          1
+        ],
+        "values": [
+          [
+            "메서드",
+            "Object.toString()"
+          ],
+          [
+            "args",
+            "null 가능"
+          ],
+          [
+            "선언 클래스",
+            "java.lang.Object"
+          ]
+        ],
+        "note": "JDK Proxy → MapperProxy"
+      },
+      {
+        "title": "MapperProxy 자신에게 Object 호출을 위임한다.",
+        "description": "method.invoke(this, args)의 this는 MapperProxy입니다. SQL 메서드 실행기를 선택하는 경로로 진입하지 않습니다.",
+        "nodes": [
+          "handler"
+        ],
+        "source": "object",
+        "lines": [
+          1,
+          2
+        ],
+        "values": [
+          [
+            "분기",
+            "Object.class"
+          ],
+          [
+            "실행 대상",
+            "MapperProxy 인스턴스"
+          ],
+          [
+            "SQL",
+            "실행하지 않음"
+          ]
+        ],
+        "note": "SQL·default 메서드와 별도 경로"
+      },
+      {
+        "title": "MapperProxy 인스턴스의 문자열 표현을 반환한다.",
+        "description": "예시는 org.apache.ibatis.binding.MapperProxy@... 형태입니다. 해시 부분은 객체마다 다르며 고정 문자열을 반환하는 계약이 아닙니다.",
+        "nodes": [
+          "handler",
+          "proxy",
+          "client"
+        ],
+        "source": "object",
+        "lines": [
+          4
+        ],
+        "values": [
+          [
+            "반환 타입",
+            "String"
+          ],
+          [
+            "예시",
+            "org.apache.ibatis.binding.MapperProxy@..."
+          ],
+          [
+            "DB 호출",
+            "없음"
+          ]
+        ],
+        "note": "Object 메서드 결과 반환",
+        "outcome": "toString 완료 · MapperProxy 인스턴스 표현"
+      }
+    ]
+  },
+  "default": {
+    "kind": "mapper",
+    "label": "default 본문 실행",
+    "steps": [
+      {
+        "title": "default 메서드는 MethodHandle로 본문을 실행한다.",
+        "description": "cachedInvoker는 DefaultMethodInvoker를 선택합니다. MethodHandle을 프록시에 연결해 first()의 Java 본문을 실행합니다. first 자체의 SQL 등록은 필요하지 않습니다.",
+        "nodes": [
+          "client",
+          "proxy",
+          "handler"
+        ],
+        "source": "default",
+        "lines": [
+          1,
+          2,
+          4
+        ],
+        "values": [
+          [
+            "호출",
+            "mapper.first()"
+          ],
+          [
+            "실행기",
+            "DefaultMethodInvoker"
+          ],
+          [
+            "실행 수단",
+            "MethodHandle"
+          ]
+        ],
+        "note": "default 본문 · 아직 DB 호출 없음"
+      },
+      {
+        "title": "본문의 findById가 프록시로 재진입한다.",
+        "description": "본문의 this는 Mapper 프록시이므로 findById(1L)은 일반 Mapper 메서드 경로로 들어갑니다. SqlSession → Executor → TypeHandler → JDBC 실행으로 이어집니다.",
+        "nodes": [
+          "handler",
+          "proxy",
+          "jdbc",
+          "db"
+        ],
+        "source": "default",
+        "lines": [
+          5
+        ],
+        "values": [
+          [
+            "내부 호출",
+            "findById(1L)"
+          ],
+          [
+            "파라미터",
+            "id=1L"
+          ],
+          [
+            "SQL",
+            "SELECT id, name FROM users WHERE id = ?"
+          ]
+        ],
+        "note": "default 본문 → Mapper SQL 호출"
+      },
+      {
+        "title": "조회 결과를 default 본문의 반환값으로 돌려준다.",
+        "description": "ResultMap으로 매핑한 User를 findById가 반환하고 first도 같은 값을 반환합니다. SQL Mapper 호출을 Java 본문으로 조합한 예제입니다.",
+        "nodes": [
+          "db",
+          "row",
+          "handler",
+          "proxy",
+          "client"
+        ],
+        "source": "default",
+        "lines": [
+          4,
+          5,
+          6
+        ],
+        "values": [
+          [
+            "본문 반환",
+            "findById 결과"
+          ],
+          [
+            "결과",
+            "User { id=1, name=Alice }"
+          ],
+          [
+            "처리",
+            "default 완료"
+          ]
+        ],
+        "note": "default → 호출자",
+        "outcome": "first 완료 · User(Alice) 반환"
+      }
+    ]
   }
-  scenarios.external = transactionScenario('external', '외부 → transfer()', false, false);
-  scenarios.self = transactionScenario('self', '비트랜잭션 바깥 → this.transfer()', true, false);
-  scenarios.outer = transactionScenario('outer', '트랜잭션 바깥 → this.transfer()', true, true);
+};
+  function transactionScenario(name, label, isSelf, hasOuterTx) {
+    const source = name === 'external' ? 'txExternal' : hasOuterTx ? 'txOuter' : 'txSelf';
+    const transactional = !isSelf || hasOuterTx;
+    const withdrawLine = hasOuterTx ? 7 : 6;
+    const connection = transactional ? 'C1 · autoCommit=false' : '호출별 연결 · autoCommit=true';
+    const base = (title, description, nodes, src, lines, values, note, balances=[100,100], extra={}) => frame(title,description,nodes,src,lines,values,note,{balances,...extra});
+    return {kind:'transaction',label,steps:[
+      base('외부 호출이 Spring Service 프록시로 들어간다.', isSelf ? '바깥 메서드에 트랜잭션 속성이 있는지에 따라 시작 경계가 달라집니다. 안쪽 this.transfer의 속성이 자동으로 적용되지는 않습니다.' : 'Spring이 관리하는 Service 프록시를 호출합니다. 실제 target에 직접 호출하는 경우와 다릅니다.', ['client','proxy'],source,[0,1],[['진입 경로',label],['초기 잔액','100 / 100'],['현재 트랜잭션','아직 없음']],'외부 → Spring AOP 프록시'),
+      base('트랜잭션 속성에 따라 인터셉터 경로를 적용한다.', transactional ? 'TransactionInterceptor가 TransactionAspectSupport를 통해 속성과 관리자를 결정합니다. Spring은 설정에 따라 인터페이스 기반 또는 클래스 기반 프록시를 사용할 수 있습니다.' : '진입한 바깥 메서드에는 트랜잭션 속성이 없어 트랜잭션 어드바이스로 경계를 만들지 않고 target을 호출합니다.', ['proxy','target'],'txHandler',[1,2,3],[['진입 메서드 @Transactional',transactional ? '있음' : '없음'],['관리자','DataSourceTransactionManager'],['호출 대상','실제 Service target']],'Spring 트랜잭션 속성 해석'),
+      transactional
+       ? base('관리자가 현재 스레드에 C1 연결을 묶는다.', hasOuterTx ? '바깥 REQUIRED 경계가 C1 트랜잭션을 시작합니다. this.transfer는 프록시를 거치지 않지만 JdbcTemplate은 같은 DataSource에 묶인 C1을 계속 사용합니다.' : '기존 트랜잭션이 없으므로 관리자가 연결의 autoCommit을 끄고 thread-bound connection으로 등록한 뒤 업무를 호출합니다.', ['proxy','manager','target'],'txHandler',[3,4],[['Connection',connection],['자원 공유','같은 스레드 + 같은 DataSource'],['자기 호출',hasOuterTx ? '새 경계 없음 · 기존 연결 사용' : '해당 없음']],'관리자 → thread-bound connection → Service')
+       : base('this.transfer()는 프록시를 다시 통과하지 않는다.','this는 실제 target입니다. 내부 메서드의 @Transactional이 새 경계를 시작하지 않으므로 이번 업무에는 트랜잭션 연결이 없습니다.', ['proxy','target'],source,[1,2,4],[['this','실제 target'],['등록 연결','없음'],['내부 속성','자기 호출에서 미적용']],'target → target · 프록시 재진입 없음'),
+      base('출금 30은 성공한다. 보내는 계좌는 70.',transactional ? 'JdbcTemplate이 DataSourceUtils로 C1을 재사용합니다. 출금 효과는 아직 커밋되지 않았으며 다른 연결에서 보이는 값이라는 의미는 아닙니다.' : '트랜잭션이 없는 autoCommit=true 연결에서 출금 SQL을 실행하고 확정합니다. 다음 SQL 실패가 이 커밋을 되돌리지는 않습니다.', ['target','jdbc','db'],source,[withdrawLine],[['Connection',connection],['출금','balance = balance - 30'],['확정 상태',transactional ? '미커밋' : '자동 커밋됨']],'출금 효과 · 70 / 100',[70,100]),
+      base('입금 제약 위반이 DataAccessException으로 전달된다.','입금하면 잔액이 130이 되어 상한 120 CHECK 제약을 위반합니다. JDBC SQLException은 Spring JdbcTemplate에서 unchecked DataAccessException 계층으로 변환됩니다.', ['jdbc','db'],source,[withdrawLine+1],[['실패 원인','130 > 120'],['예외','DataAccessException (구체 타입은 번역 결과에 따름)'],['받는 계좌','100 유지']],'JDBC 예외 → Spring 데이터 접근 예외',[70,100]),
+      base('실패가 바깥 호출 경계로 전파된다.',transactional ? 'DataAccessException은 RuntimeException이므로 TransactionInterceptor의 기본 rollbackOn 규칙에 해당합니다. 관리자가 현재 트랜잭션을 롤백합니다.' : '예외는 전파되지만 업무 트랜잭션은 시작하지 않았습니다. 이미 확정된 출금을 되돌릴 전체 롤백 경계가 없습니다.',transactional ? ['db','manager'] : ['target','proxy'],transactional ? 'txFinish' : source,transactional ? [2,3,5] : [2],[['예외','DataAccessException'],['트랜잭션',transactional ? '전체 롤백' : '없음'],['현재 효과','70 / 100']],'실패 → 경계의 롤백 판단',[70,100]),
+      base(transactional ? '전체 롤백. 두 계좌는 다시 100 / 100.' : '부분 반영. 최종 잔액은 70 / 100.',transactional ? '관리자가 출금까지 롤백하고 스레드의 연결 바인딩과 자원을 정리합니다. 호출자는 DataAccessException을 받습니다. 기존 트랜잭션 안의 자기 호출도 같은 연결 작업에 포함됩니다.' : '입금은 실패했고 출금은 이미 커밋되었습니다. 내부 @Transactional의 존재만으로 자기 호출에 경계가 생기지는 않습니다.',transactional ? ['manager','proxy','client'] : ['proxy','client'],transactional ? 'txFinish' : source,transactional ? [3,5,7] : [2],[['최종 잔액',transactional ? '100 / 100' : '70 / 100'],['결과',transactional ? '전체 rollback' : '출금만 확정'],['호출자에게','DataAccessException 전파']],'최종 확정 결과',transactional ? [100,100] : [70,100],{outcome:transactional ? '실패 · 출금까지 롤백' : '실패 · 출금이 남음'})
+    ]};
+  }
+  scenarios.external = transactionScenario('external','외부 → transfer()',false,false);
+  scenarios.self = transactionScenario('self','비트랜잭션 바깥 → this.transfer()',true,false);
+  scenarios.outer = transactionScenario('outer','트랜잭션 바깥 → this.transfer()',true,true);
 
   function createPlayer({ onChange = () => {}, setTimer = setTimeout, clearTimer = clearTimeout, initial = 'mapper' } = {}) {
     if (!Object.hasOwn(scenarios, initial)) throw new RangeError('Unknown scenario');
@@ -267,12 +853,12 @@ globalThis.JormLab = (() => {
 <script>
 (() => {
   'use strict';
-  const { scenarios, code, createPlayer } = JormLab;
+  const { scenarios, code, createPlayer } = OrmLab;
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const escape = value => String(value).replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
   const players = [];
-  const mapperNodes = [['client','호출 코드','UserMapper / caller'],['proxy','JDK Proxy','implements UserMapper'],['handler','핸들러','invoke(...)'],['jdbc','JdbcTemplate','bind / execute'],['db','DB','rows'],['row','RowMapper','row → User']];
-  const txNodes = [['client','호출자','external call'],['proxy','Service 프록시','invoke(...)'],['target','실제 Service','target / this'],['manager','트랜잭션 관리자','ThreadLocal state'],['jdbc','SQL 실행','Mapper → JDBC'],['db','DB','accounts']];
+  const mapperNodes = [['client','호출 코드','UserMapper / caller'],['proxy','JDK Proxy','implements UserMapper'],['handler','MapperProxy','cachedInvoker'],['jdbc','MyBatis 실행 계층','SqlSession / Executor'],['db','DB','JDBC / rows'],['row','결과 처리기','ResultMap / TypeHandler']];
+  const txNodes = [['client','호출자','external call'],['proxy','Spring AOP 프록시','TransactionInterceptor'],['target','실제 Service','target / this'],['manager','트랜잭션 관리자','thread-bound connection'],['jdbc','JdbcTemplate','SQL / exception translation'],['db','DB','accounts']];
   function mount(lab, number) {
     const isTx = lab.dataset.lab === 'transaction';
     const prefix = isTx ? 'tx' : 'mapper';
@@ -287,7 +873,7 @@ globalThis.JormLab = (() => {
             ${nodes.map(([id,title,sub]) => `<div class="graph-node" data-node="${id}"><strong>${title}</strong><small>${sub}</small></div>`).join('')}
           </div><p class="diagram-note"></p>
         </div>
-        <div class="scene-code"><div class="caption">B / 관련 코드 · 강조된 줄을 보세요</div><pre tabindex="0" aria-label="현재 장면의 관련 코드"><code></code></pre></div>
+        <div class="scene-code"><div class="caption">B / 설명용 코드 · 내부 흐름은 의사 코드</div><pre tabindex="0" aria-label="현재 장면의 관련 코드"><code></code></pre></div>
       </div>
       <dl class="values" aria-label="C / 현재 실행값"></dl>
       ${isTx ? '<div class="balance" aria-label="해당 작업의 잔액 효과"><div class="account"><span>보내는 계좌</span><strong data-account="0">100</strong></div><div class="account"><span>받는 계좌</span><strong data-account="1">100</strong></div></div>' : ''}
