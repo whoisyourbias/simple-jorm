@@ -52,7 +52,7 @@ class TransactionSelfInvocationTest {
 
         /** 출금은 성공하지만 입금이 상한 제약을 위반하도록 동일한 업무를 실행한다. */
         @Override
-        @Transactional
+        @Transactional(rollbackFor = SQLException.class)
         public void transfer() throws SQLException {
             // 보내는 계좌의 잔액은 100에서 70으로 내려가므로 성공한다.
             accounts.withdraw(30, 1);
@@ -69,7 +69,7 @@ class TransactionSelfInvocationTest {
 
         /** 자기 호출이 새 트랜잭션을 만들지는 않지만 이미 시작된 바깥 트랜잭션은 유지된다. */
         @Override
-        @Transactional
+        @Transactional(rollbackFor = SQLException.class)
         public void transferViaTransactionalSelf() throws SQLException {
             // 바깥 프록시가 등록한 Connection을 내부 SQL도 사용한다.
             this.transfer();

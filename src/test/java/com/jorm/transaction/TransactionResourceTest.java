@@ -60,6 +60,134 @@ class TransactionResourceTest {
         assertNull(transactions.getOrCreateResource(new Object(), () -> fail("outside")));
     }
 
+    @Test
+    void beforeCommitRunsOnceAtOutermostBoundaryUsingSharedConnection() throws SQLException {
+        List<String> calls = new ArrayList<>();
+        String url = transactions.withConnection(c -> c.getMetaData().getURL());
+        try (var keeper = java.sql.DriverManager.getConnection(url)) {
+            transactions.withConnection(c -> { c.createStatement().execute("CREATE TABLE items(id INT)"); return null; });
+            transactions.execute(() -> {
+                Connection shared = transactions.withConnection(c -> c);
+                Object key = new Object();
+                TransactionResource resource = transactions.getOrCreateResource(key, () -> new TransactionResource() {
+                    public void beforeCommit() throws SQLException {
+                        calls.add("before");
+                        assertSame(this, transactions.getOrCreateResource(key, () -> fail("duplicate")));
+                        transactions.withConnection(c -> {
+                            assertSame(shared, c);
+                            c.createStatement().execute("INSERT INTO items VALUES(1)");
+                            return null;
+                        });
+                        assertThrows(IllegalStateException.class,
+                                () -> transactions.getOrCreateResource(new Object(), () -> () -> {}));
+                        assertThrows(IllegalStateException.class, () -> transactions.execute(() -> null));
+                    }
+                    public void afterCompletion() { calls.add("after"); }
+                });
+                transactions.execute(() -> {
+                    assertSame(resource, transactions.getOrCreateResource(key, () -> fail("duplicate")));
+                    return null;
+                });
+                assertTrue(calls.isEmpty());
+                return null;
+            });
+            assertEquals(List.of("before", "after"), calls);
+            transactions.withConnection(c -> {
+                try (var statement = c.createStatement(); var rows = statement.executeQuery("SELECT COUNT(*) FROM items")) {
+                    assertTrue(rows.next());
+                    assertEquals(1, rows.getInt(1));
+                }
+                return null;
+            });
+        }
+    }
+
+    @Test
+    void beforeCommitFailureRollsBackAndCleansEveryResource() {
+        SQLException failure = new SQLException("flush");
+        List<String> calls = new ArrayList<>();
+        transactions = failingManager(null, null, calls);
+        assertSame(failure, assertThrows(SQLException.class, () -> transactions.execute(() -> {
+            transactions.getOrCreateResource(new Object(), () -> new TransactionResource() {
+                public void beforeCommit() throws SQLException { calls.add("before"); throw failure; }
+                public void afterCompletion() { calls.add("first cleanup"); }
+            });
+            transactions.getOrCreateResource(new Object(), () -> new TransactionResource() {
+                public void beforeCommit() { fail("must stop beforeCommit after failure"); }
+                public void afterCompletion() { calls.add("second cleanup"); }
+            });
+            return null;
+        })));
+        assertEquals(List.of("before", "rollback", "first cleanup", "second cleanup", "reset", "close"), calls);
+    }
+
+    @Test
+    void rollbackPathsSkipBeforeCommitButAlwaysCleanResources() {
+        for (boolean rollbackOnly : List.of(false, true)) {
+            AtomicInteger cleaned = new AtomicInteger();
+            Class<? extends Throwable> expected = rollbackOnly ? UnexpectedRollbackException.class : SQLException.class;
+            assertThrows(expected,
+                    () -> transactions.execute(() -> {
+                        transactions.getOrCreateResource(new Object(), () -> new TransactionResource() {
+                            public void beforeCommit() { fail("rollback must skip beforeCommit"); }
+                            public void afterCompletion() { cleaned.incrementAndGet(); }
+                        });
+                        SQLException failure = new SQLException("business");
+                        if (!rollbackOnly) throw failure;
+                        transactions.markRollbackOnly(failure);
+                        return null;
+                    }));
+            assertEquals(1, cleaned.get());
+        }
+    }
+
+    @Test
+    void beforeCommitFailureRollsBackBusinessAndEarlierResourceSql() throws SQLException {
+        String url = transactions.withConnection(c -> c.getMetaData().getURL());
+        SQLException failure = new SQLException("flush failed");
+        try (var keeper = java.sql.DriverManager.getConnection(url)) {
+            transactions.withConnection(c -> { c.createStatement().execute("CREATE TABLE items(id INT)"); return null; });
+            assertSame(failure, assertThrows(SQLException.class, () -> transactions.execute(() -> {
+                transactions.withConnection(c -> { c.createStatement().execute("INSERT INTO items VALUES(1)"); return null; });
+                transactions.getOrCreateResource(new Object(), () -> new TransactionResource() {
+                    public void beforeCommit() throws SQLException {
+                        transactions.withConnection(c -> { c.createStatement().execute("INSERT INTO items VALUES(2)"); return null; });
+                    }
+                    public void afterCompletion() {}
+                });
+                transactions.getOrCreateResource(new Object(), () -> new TransactionResource() {
+                    public void beforeCommit() throws SQLException { throw failure; }
+                    public void afterCompletion() {}
+                });
+                return null;
+            })));
+            transactions.withConnection(c -> {
+                try (var statement = c.createStatement(); var rows = statement.executeQuery("SELECT COUNT(*) FROM items")) {
+                    assertTrue(rows.next());
+                    assertEquals(0, rows.getInt(1));
+                }
+                return null;
+            });
+        }
+    }
+
+    @Test
+    void rollbackOnlySetDuringBeforeCommitPreventsCommit() {
+        SQLException failure = new SQLException("flush marked rollback");
+        List<String> calls = new ArrayList<>();
+        transactions = failingManager(null, null, calls);
+        UnexpectedRollbackException thrown = assertThrows(UnexpectedRollbackException.class,
+                () -> transactions.execute(() -> {
+                    transactions.getOrCreateResource(new Object(), () -> new TransactionResource() {
+                        public void beforeCommit() { transactions.markRollbackOnly(failure); }
+                        public void afterCompletion() { calls.add("cleanup"); }
+                    });
+                    return null;
+                }));
+        assertSame(failure, thrown.getCause());
+        assertEquals(List.of("rollback", "cleanup", "reset", "close"), calls);
+    }
+
     /** 생성 실패한 자원을 등록하지 않아야 이후 정상 생성이 가능하다. */
     @Test
     void factoryFailureDoesNotRegisterResource() throws SQLException {

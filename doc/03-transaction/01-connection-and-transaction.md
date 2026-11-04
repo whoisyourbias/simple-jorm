@@ -28,7 +28,27 @@ JdbcTemplate은 `withConnection`으로 SQL을 실행한다. 트랜잭션 안에�
 - 참여한 execute 밖으로 SQLException·RuntimeException·Error가 나오면 rollbackOnly와 최초 실패 원인을 남긴다. 바깥 업무가 이를 잡고 정상 반환해도 전체 롤백한 뒤 UnexpectedRollbackException을 던진다. 원래 실패가 바깥까지 전파되면 그 실패 자체를 전달한다.
 - 같은 execute 콜백 내부에서 예외를 잡아 경계 밖으로 전달하지 않으면 관리자는 실패를 알 수 없다. 자기 호출 역시 별도의 참여 경계를 만들지 않는다.
 - 콜백의 checked 예외는 SQLException을 지원한다.
-- Service 구현 메서드의 @Transactional은 TransactionProxyFactory로 만든 프록시를 통해 호출할 때 적용된다. 모든 예외를 롤백하는 프로젝트 정책이며 Spring의 기본 롤백 규칙과 동일하지는 않다.
+- Service 구현 메서드의 `@Transactional`은 TransactionProxyFactory로 만든 프록시를 통해 호출할 때 적용된다. 선언적 경계는 기본적으로 RuntimeException·Error를 롤백하고, checked 예외(SQLException 포함)는 커밋 후 같은 예외 객체를 다시 던진다. 명시적 `execute`의 SQLException 롤백 계약은 유지한다.
+
+## 선언적 롤백 규칙
+
+```java
+@Transactional(rollbackFor = Exception.class,
+               noRollbackFor = RecoverableBusinessException.class)
+public void transfer() throws Exception { /* ... */ }
+```
+
+`rollbackFor`와 `noRollbackFor`는 `Class<? extends Throwable>[]`이며 지정 타입의 하위 타입에도 적용된다. 실제 예외에서 가장 가까운 상위 타입 규칙이 우선한다. 같은 타입을 두 속성에 모두 지정하면 `rollbackFor`가 우선한다. 일치하는 규칙이 없으면 기본 RuntimeException·Error 롤백 규칙을 따른다. 예외의 cause 체인이나 이름 패턴은 검사하지 않는다.
+
+REQUIRED 참여자는 자기 경계의 규칙이 롤백을 요구할 때만 rollbackOnly를 남긴다. 따라서 안쪽 `noRollbackFor` 예외를 바깥 업무가 잡으면 정상 커밋할 수 있다. 예외가 바깥 선언적 경계까지 전파되면 바깥 경계의 규칙도 독립적으로 적용된다. 이미 설정된 rollbackOnly를 `noRollbackFor`가 취소하지는 않는다. 실제 SQL 실패를 세션 등이 `markRollbackOnly`로 표시했다면 checked 예외 규칙과 관계없이 롤백된다.
+
+이는 [Spring 공식 선언적 롤백 문서](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/rolling-back.html)의 기본 예외 정책과 가장 강한 규칙 우선 원리를 따른다. Spring의 전역 기본값 변경, 이름 패턴, 클래스 어노테이션, 클래스 프록시, 격리 수준과 REQUIRED 외 전파 옵션은 구현하지 않는다.
+
+## 커밋 전 자원 동기화
+
+`TransactionResource`는 기본 메서드 `beforeCommit() throws SQLException`과 추상 메서드 `afterCompletion()`을 제공한다. 기존 정리 전용 람다도 그대로 사용할 수 있다. 가장 바깥 경계에서 rollbackOnly가 없고 커밋할 때만 등록 순서대로 `beforeCommit`을 한 번 호출한다. 이때 `withConnection`으로 같은 연결에서 SQL을 실행하거나 기존 자원을 가져올 수 있다. 콜백 중 새 자원 등록과 중첩 `execute`는 거부한다.
+
+콜백 완료 후에도 rollbackOnly를 다시 확인한 뒤 JDBC commit을 실행한다. `beforeCommit` 실패(SQLException·RuntimeException·Error)는 전체 롤백하며 이후 콜백은 실행하지 않는다. 업무 실패·rollbackOnly 등 롤백 경로에서는 `beforeCommit`을 호출하지 않는다. `afterCompletion`은 성공·실패 모두에서 모든 자원을 정리하며, 이 종료 단계에서는 SQL과 트랜잭션 재진입을 거부한다. 정리 실패는 원래 실패의 suppressed 예외로 남긴다.
 
 ## 검증
 
