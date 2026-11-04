@@ -3,8 +3,10 @@ package com.jorm.entity;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class EntityMetadata {
@@ -29,63 +31,75 @@ public class EntityMetadata {
         Field discoveredId = null;
         // 필드 추가 순서를 저장하기 위해 LinkedHashMap을 사용한다.
         Map<String, Field> discoveredColumns = new LinkedHashMap<>();
+        Set<String> discoveredFieldNames = new HashSet<>();
 
-        // 해당 클래스에 직접 선언된 필드를 조사한다.
-        for (Field field : entityType.getDeclaredFields()) {
-            // 생성 전략은 인스턴스의 ID 필드에서만 의미가 있다.
-            if (field.isAnnotationPresent(GeneratedValue.class)
-                    && (!field.isAnnotationPresent(Id.class)
-                    || Modifier.isStatic(field.getModifiers()) || field.isSynthetic())) {
-                throw new IllegalArgumentException("@GeneratedValue는 인스턴스 @Id 필드에만 지정합니다.");
-            }
-            // 클래스 공용 필드와 컴파일러가 만든 필드는 제외한다.
-            if (Modifier.isStatic(field.getModifiers()) || field.isSynthetic()) {
-                continue;
-            }
+        // 구체 클래스와 부모의 필드를 한 테이블의 매핑으로 분석한다.
+        for (Class<?> type = entityType; type != Object.class && type != null; type = type.getSuperclass()) {
+            for (Field field : type.getDeclaredFields()) {
+                // 저장 제외 선언에는 매핑 가능성(final·컬럼명·생성 전략)을 검사하지 않는다.
+                if (Modifier.isTransient(field.getModifiers()) || field.isAnnotationPresent(Transient.class)) {
+                    continue;
+                }
+                // 생성 전략은 인스턴스의 ID 필드에서만 의미가 있다.
+                if (field.isAnnotationPresent(GeneratedValue.class)
+                        && (!field.isAnnotationPresent(Id.class)
+                        || Modifier.isStatic(field.getModifiers()) || field.isSynthetic())) {
+                    throw new IllegalArgumentException("@GeneratedValue는 인스턴스 @Id 필드에만 지정합니다.");
+                }
+                // 클래스 공용 필드와 컴파일러가 만든 필드는 제외한다.
+                if (Modifier.isStatic(field.getModifiers()) || field.isSynthetic()) {
+                    continue;
+                }
 
-            // 조회 결과를 필드에 저장할 수 있도록 final 필드는 거부한다.
-            if (Modifier.isFinal(field.getModifiers())) {
-                throw new IllegalArgumentException(
-                        "final 필드는 지원하지 않습니다: " + field.getName());
-            }
+                // 같은 Java 필드를 부모·자식에서 숨기면 별칭이 달라도 모호한 매핑이다.
+                if (!discoveredFieldNames.add(field.getName())) {
+                    throw new IllegalArgumentException("숨겨진 매핑 필드입니다: " + field.getName());
+                }
 
-            // private 필드도 리플렉션으로 읽고 쓸 수 있게 한다.
-            if (!field.trySetAccessible()) {
-                throw new IllegalArgumentException(
-                        "접근할 수 없는 필드입니다: " + field.getName());
-            }
-
-            // 생성 전략마다 지원하는 ID 타입이 다르며, null로 미저장 상태를 표현한다.
-            if (field.isAnnotationPresent(GeneratedValue.class)) {
-                GenerationType strategy = field.getAnnotation(GeneratedValue.class).strategy();
-                boolean supported = switch (strategy) {
-                    case IDENTITY -> field.getType() == Long.class || field.getType() == Integer.class;
-                    case UUID -> field.getType() == UUID.class || field.getType() == String.class;
-                };
-                if (!supported) {
+                // 조회 결과를 필드에 저장할 수 있도록 final 필드는 거부한다.
+                if (Modifier.isFinal(field.getModifiers())) {
                     throw new IllegalArgumentException(
-                            strategy + " 생성 ID에 지원하지 않는 타입입니다: " + field.getType().getName());
+                            "final 필드는 지원하지 않습니다: " + field.getName());
                 }
-            }
 
-            // @Column이 없으면 Java 필드명을 컬럼명으로 사용한다.
-            Column column = field.getAnnotation(Column.class);
-            String columnName =
-                    column == null ? field.getName() : column.value();
-
-            // 빈 이름이나 중복된 컬럼 매핑은 거부한다.
-            if (columnName.isBlank()
-                    || discoveredColumns.putIfAbsent(columnName, field) != null) {
-                throw new IllegalArgumentException(
-                        "비어 있거나 중복된 컬럼명입니다: " + columnName);
-            }
-
-            // @Id 필드는 정확히 하나만 허용한다.
-            if (field.isAnnotationPresent(Id.class)) {
-                if (discoveredId != null) {
-                    throw new IllegalArgumentException("@Id는 하나만 지정해야 합니다.");
+                // private 필드도 리플렉션으로 읽고 쓸 수 있게 한다.
+                if (!field.trySetAccessible()) {
+                    throw new IllegalArgumentException(
+                            "접근할 수 없는 필드입니다: " + field.getName());
                 }
-                discoveredId = field;
+
+                // 생성 전략마다 지원하는 ID 타입이 다르며, null로 미저장 상태를 표현한다.
+                if (field.isAnnotationPresent(GeneratedValue.class)) {
+                    GenerationType strategy = field.getAnnotation(GeneratedValue.class).strategy();
+                    boolean supported = switch (strategy) {
+                        case IDENTITY -> field.getType() == Long.class || field.getType() == Integer.class;
+                        case UUID -> field.getType() == UUID.class || field.getType() == String.class;
+                    };
+                    if (!supported) {
+                        throw new IllegalArgumentException(
+                                strategy + " 생성 ID에 지원하지 않는 타입입니다: " + field.getType().getName());
+                    }
+                }
+
+                // @Column이 없으면 Java 필드명을 컬럼명으로 사용한다.
+                Column column = field.getAnnotation(Column.class);
+                String columnName =
+                        column == null ? field.getName() : column.value();
+
+                // 빈 이름이나 중복된 컬럼 매핑은 거부한다.
+                if (columnName.isBlank()
+                        || discoveredColumns.putIfAbsent(columnName, field) != null) {
+                    throw new IllegalArgumentException(
+                            "비어 있거나 중복된 컬럼명입니다: " + columnName);
+                }
+
+                // @Id 필드는 정확히 하나만 허용한다.
+                if (field.isAnnotationPresent(Id.class)) {
+                    if (discoveredId != null) {
+                        throw new IllegalArgumentException("@Id는 하나만 지정해야 합니다.");
+                    }
+                    discoveredId = field;
+                }
             }
         }
 

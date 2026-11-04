@@ -43,7 +43,7 @@ DELETE FROM users WHERE user_id = ?
 
 JdbcTemplate과 같은 TransactionManager의 활성 연결을 공유한다. 트랜잭션 밖에서는 임시 연결을 사용한다. SQL 오류는 SQLException으로 전파된다. 같은 트랜잭션 안에서 앞선 UPDATE·DELETE가 성공해도 뒤의 오류가 밖으로 전파되면 모두 롤백된다. DB 롤백은 이미 바꾼 Java 객체 값을 복원하지 않는다.
 
-JPA의 관리 상태 검사, 자동 변경 감지, flush, cascade, 낙관적 잠금은 구현하지 않는다. 관계 매핑·상속 필드·복합 ID도 기존과 같이 미지원이다.
+JPA의 관리 상태 검사, 자동 변경 감지, flush, cascade, 낙관적 잠금은 이 단계의 범위가 아니다. 관계 매핑·복합 ID·JPA 상속 전략은 지원하지 않는다. 부모의 필드·단일 ID와 저장 제외 선언은 [공통 메타데이터](06-inherited-and-transient-fields.md)를 통해 UPDATE·DELETE에도 반영한다.
 
 ## 검증
 
