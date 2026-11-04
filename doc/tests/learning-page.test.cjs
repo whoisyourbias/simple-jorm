@@ -13,7 +13,7 @@ function loadLab() {
   const context = { setTimeout, clearTimeout };
   vm.createContext(context);
   vm.runInContext(script[1], context);
-  return context.JormLab;
+  return context.OrmLab;
 }
 
 function fixture() {
@@ -85,16 +85,16 @@ test('autoplay finishes once, preserves its final result, and restarts explicitl
   player.pause();
 });
 
-test('annotation errors and Object methods stop before a database operation', () => {
+test('unmapped statements and Object methods stop before a database operation', () => {
   const { lab } = fixture();
   for (const name of ['missing', 'object']) {
     assert.ok(lab.scenarios[name].steps.every(step => !step.nodes.includes('db')));
   }
-  assert.match(JSON.stringify(lab.scenarios.missing.steps.at(-1)), /UnsupportedOperationException/);
+  assert.match(JSON.stringify(lab.scenarios.missing.steps.at(-1)), /BindingException/);
   assert.match(JSON.stringify(lab.scenarios.object.steps.at(-1)), /MapperProxy/);
 });
 
-test('three self-invocation paths preserve the balances proved by repository tests', () => {
+test('three Spring proxy paths preserve transaction boundaries', () => {
   const { lab, player } = fixture();
   for (const [scenario, expected] of [['external', [100, 100]], ['self', [70, 100]], ['outer', [100, 100]]]) {
     player.select(scenario);
@@ -102,7 +102,7 @@ test('three self-invocation paths preserve the balances proved by repository tes
     assert.equal(JSON.stringify(player.snapshot().frame.balances), JSON.stringify(expected));
     player.prev();
     assert.equal(JSON.stringify(player.snapshot().frame.balances), '[70,100]');
-    assert.ok(lab.scenarios[scenario].steps.some(step => /SQLException/.test(JSON.stringify(step))));
+    assert.ok(lab.scenarios[scenario].steps.some(step => /DataAccessException/.test(JSON.stringify(step))));
   }
 });
 
@@ -112,4 +112,35 @@ test('invalid speed and scenario input leave the inspected state intact', () => 
   assert.throws(() => player.select('not-a-scenario'));
   assert.throws(() => player.setSpeed(0));
   assert.equal(JSON.stringify(player.snapshot()), before);
+});
+
+// Education contract: the page describes published libraries, and the animation
+// must not teach the former miniature implementation as their execution path.
+test('page explains actual data access technologies without project branding', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.doesNotMatch(html, /jorm|자체 구현|구현 완료|미구현|MapperFactory|TransactionProxyFactory/i);
+  for (const concept of ['ConversionService', 'EmptyResultDataAccessException', 'IncorrectResultSizeDataAccessException',
+    'MappedStatement', 'SqlSession', 'Executor', 'ResultMap', 'TypeHandler',
+    'TransactionInterceptor', 'DataSourceTransactionManager', 'rollbackFor', 'rollbackOnly',
+    '@MappedSuperclass', '@Transient', 'GenerationType.IDENTITY', '스냅샷', 'dirty checking', 'FlushModeType.AUTO']) {
+    assert.ok(html.includes(concept), concept + ' must be explained');
+  }
+});
+
+test('MyBatis mapper scenes use cached execution and JDBC type handlers', () => {
+  const { lab } = fixture();
+  const text = JSON.stringify(lab.scenarios.mapper.steps);
+  for (const name of ['MappedStatement', 'cachedInvoker', 'SqlSession', 'Executor', 'TypeHandler', 'ResultMap']) assert.ok(text.includes(name), name);
+  assert.doesNotMatch(text, /JdbcTemplate|BeanPropertyRowMapper|필드 fallback/);
+  assert.match(text, /setLong\(1, 1L\)/);
+});
+
+test('a default mapper method executes its body then reenters the mapper proxy', () => {
+  const { lab, player } = fixture();
+  player.select('default');
+  assert.ok(!player.snapshot().frame.nodes.includes('db'));
+  while (!player.snapshot().atEnd) player.next();
+  assert.match(JSON.stringify(player.snapshot().frame), /Alice/);
+  assert.ok(lab.scenarios.default.steps.some(s => s.nodes.includes('db')));
+  assert.match(JSON.stringify(lab.scenarios.default.steps), /MethodHandle/);
 });
