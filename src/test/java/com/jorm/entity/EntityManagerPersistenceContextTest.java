@@ -120,7 +120,7 @@ class EntityManagerPersistenceContextTest {
             assertEquals(1, jdbc.selects);
             return null;
         });
-        assertEquals("Alice", entities.find(User.class, 1L).name);
+        assertEquals("in memory", entities.find(User.class, 1L).name);
     }
 
     /** 서로 다른 타입·ID는 같은 관리 객체를 공유하면 안 된다. */

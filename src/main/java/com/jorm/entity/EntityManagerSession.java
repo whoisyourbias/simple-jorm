@@ -158,8 +158,31 @@ final class EntityManagerSession implements AutoCloseable {
             int rows = jdbcTemplate.update(sql, values.toArray());
             if (rows == 0) {
                 context.remove(entity, metadata);
+            } else {
+                context.refreshSnapshot(entity, metadata);
             }
             return rows;
+        } catch (SQLException failure) {
+            jdbcTemplate.getTransactionManager().markRollbackOnly(failure);
+            throw failure;
+        }
+    }
+
+    /** 같은 트랜잭션의 관리 객체 변경만 동기화하며 commit하지 않는다. */
+    public void flush() throws SQLException {
+        checkOpen();
+        try {
+            List<Object> managed = context.managedEntities();
+            // 잘못된 ID로 일부 UPDATE가 먼저 실행되지 않도록 전체를 먼저 검사한다.
+            for (Object entity : managed) {
+                context.validateId(entity, getMetadata(entity.getClass()));
+            }
+            for (Object entity : managed) {
+                EntityMetadata metadata = getMetadata(entity.getClass());
+                if (context.isDirty(entity, metadata)) {
+                    update(entity);
+                }
+            }
         } catch (SQLException failure) {
             jdbcTemplate.getTransactionManager().markRollbackOnly(failure);
             throw failure;
