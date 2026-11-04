@@ -8,7 +8,6 @@ import java.lang.reflect.Type;
 
 import com.jorm.jdbc.BeanPropertyRowMapper;
 import com.jorm.jdbc.JdbcTemplate;
-import com.jorm.transaction.Transactional;
 
 public class MapperInvocationHandler implements InvocationHandler {
 
@@ -40,6 +39,11 @@ public class MapperInvocationHandler implements InvocationHandler {
     	}
 
 
+
+        // default 본문을 이 프록시를 수신자로 실행해 내부 Mapper 호출도 핸들러를 거치게 한다.
+        if (method.isDefault()) {
+            return InvocationHandler.invokeDefault(proxy, method, args == null ? new Object[0] : args);
+        }
 
         // 현재 메서드에서 해당 SQL 어노테이션을 읽는다.
         Select select = method.getAnnotation(Select.class);
@@ -78,7 +82,9 @@ public class MapperInvocationHandler implements InvocationHandler {
         // 조회 SQL 처리 경로로 분기한다.
         if (select != null) {
             // 현재 처리할 조회 또는 변경 SQL을 결정한다.
-	        String sql = select.value();
+	        var boundSql = SqlParameterBinder.bind(method, select.value(), parameters);
+            String sql = boundSql.sql();
+            parameters = boundSql.parameters();
             // 실행 환경·진행 상황 또는 비교 결과를 출력한다.
 	        System.out.println("실행할 SQL: " + sql);
 
@@ -139,6 +145,7 @@ public class MapperInvocationHandler implements InvocationHandler {
         // 현재 처리할 조회 또는 변경 SQL을 결정한다.
         String sql = insert != null ? insert.value() : update != null ? update.value() : delete.value();
         // 변경 SQL을 실행하고 영향받은 행 수를 반환한다.
-        return jdbcTemplate.update(sql, parameters);
+        var boundSql = SqlParameterBinder.bind(method, sql, parameters);
+        return jdbcTemplate.update(boundSql.sql(), boundSql.parameters());
     }
 }
