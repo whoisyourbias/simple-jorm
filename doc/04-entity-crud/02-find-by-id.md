@@ -30,7 +30,8 @@ persist는 이미 존재하는 객체를 읽으므로 기본 생성자가 필요
 
 - null ID·추상 타입·기본 생성자 없는 타입은 IllegalArgumentException이다.
 - SQL 실행 오류, 생성자 실행 오류, 필드 타입 불일치는 SQLException으로 전달한다.
-- 별도 값 타입 변환, 상속 필드, 복합 ID, 관계 매핑은 지원하지 않는다.
+- 부모의 private 필드와 ID도 같은 메타데이터로 조회한다. Java `transient`·자체 `@Transient` 필드는 SELECT에 포함하지 않으므로 새 객체의 초기값을 유지한다. [부모 필드와 저장 제외 선언](06-inherited-and-transient-fields.md)을 참고한다.
+- 별도 값 타입 변환, 복합 ID, 관계 매핑, JPA 상속 전략은 지원하지 않는다.
 - 같은 관리자의 트랜잭션 안에서 persist한 미커밋 행을 find할 수 있다. 롤백 후에는 해당 행이 없다.
 - 클래스 구조만 캐시한다. 연속 두 번 조회해도 별도 객체이며 최신 DB 값을 읽는다.
 
