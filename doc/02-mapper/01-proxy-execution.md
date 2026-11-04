@@ -174,4 +174,4 @@ flowchart LR
 
 초기 SQL 출력 프록시에서 JdbcTemplate 위임·파라미터 바인딩·단건·목록 조회·변경 SQL 반환까지 확장했다. Service 트랜잭션 프록시와 REQUIRED 참여도 완료했다.
 
-현재 엔티티 메타데이터·INSERT·ID 조회까지 구현했으며 다음 작업은 생성 ID 반영과 엔티티 UPDATE·DELETE다. [최신 진행 상황](../00-overview/01-progress.md)을 참고한다.
+현재 엔티티 CRUD·생성 ID·상속 필드 매핑과 영속성 컨텍스트의 객체 동일성·변경 감지·flush까지 구현했다. [최신 진행 상황](../00-overview/01-progress.md)을 참고한다.

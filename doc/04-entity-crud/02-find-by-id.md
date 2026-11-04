@@ -8,7 +8,7 @@
 User user = entityManager.find(User.class, 1L);
 ```
 
-JPA EntityManager.find처럼 클래스와 ID로 조회하는 진입 형태를 학습한다. 현재 구현은 매번 SELECT하고 새 객체를 만들며, JPA의 영속성 컨텍스트·객체 동일성 보장은 없다. [단계별 기술 대응](../reference/03-learning-stage-mapping.md)을 참고한다.
+JPA EntityManager.find처럼 클래스와 ID로 조회하는 진입 형태를 학습한다. 아래 실행 순서는 관리 객체가 없을 때의 SQL 조회 경로다. 현재는 같은 관리자·트랜잭션의 관리 객체를 우선 반환하며, 트랜잭션 밖과 캐싱 대상 외 ID 타입은 새로 조회한다. [단계별 기술 대응](../reference/03-learning-stage-mapping.md)을 참고한다.
 
 ## 실행 순서
 
@@ -24,7 +24,7 @@ JPA EntityManager.find처럼 클래스와 ID로 조회하는 진입 형태를 �
 
 persist는 이미 존재하는 객체를 읽으므로 기본 생성자가 필요 없다. find는 새 객체를 만들어야 하므로 기본 생성자가 필요하다. 이 검사는 find에서만 수행해 기존 persist 지원 범위를 유지한다.
 
-기존 BeanPropertyRowMapper는 컬럼 라벨과 Java 필드명을 연결하지만 @Column을 해석하지 않는다. find는 EntityMetadata를 사용하므로 DB 컬럼명과 필드명이 달라도 매핑할 수 있다. DB에 엔티티로 매핑하지 않은 컬럼이 있어도 명시한 SELECT 컬럼만 읽는다.
+BeanPropertyRowMapper는 컬럼 라벨을 setter·필드에 연결하지만 @Column을 해석하지 않는다. find는 EntityMetadata를 사용하므로 DB 컬럼명과 필드명이 달라도 매핑할 수 있다. DB에 엔티티로 매핑하지 않은 컬럼이 있어도 명시한 SELECT 컬럼만 읽는다.
 
 ## 지원 범위와 검증
 
@@ -33,9 +33,9 @@ persist는 이미 존재하는 객체를 읽으므로 기본 생성자가 필요
 - 부모의 private 필드와 ID도 같은 메타데이터로 조회한다. Java `transient`·자체 `@Transient` 필드는 SELECT에 포함하지 않으므로 새 객체의 초기값을 유지한다. [부모 필드와 저장 제외 선언](06-inherited-and-transient-fields.md)을 참고한다.
 - 별도 값 타입 변환, 복합 ID, 관계 매핑, JPA 상속 전략은 지원하지 않는다.
 - 같은 관리자의 트랜잭션 안에서 persist한 미커밋 행을 find할 수 있다. 롤백 후에는 해당 행이 없다.
-- 클래스 구조만 캐시한다. 연속 두 번 조회해도 별도 객체이며 최신 DB 값을 읽는다.
+- 클래스 구조와 트랜잭션별 관리 객체를 캐시한다. 같은 트랜잭션의 지원 ID는 같은 객체를 반환하므로 직접 JDBC·Mapper로 수정한 DB 값을 자동으로 다시 읽지는 않는다.
 
-[EntityManagerFindTest](../../src/test/java/com/jorm/entity/EntityManagerFindTest.java)의 12개 테스트로 위 동작을 검증한다. find 추가 당시 전체 테스트는 93개였으며, 이후 검증 결과는 [진행 상황](../00-overview/01-progress.md)을 참고한다.
+[EntityManagerFindTest](../../src/test/java/com/jorm/entity/EntityManagerFindTest.java)의 13개 테스트와 영속성 컨텍스트 테스트로 검증한다. find 추가 당시 전체 테스트는 93개였으며, 최신 통합 검증 결과는 [진행 상황](../00-overview/01-progress.md)을 참고한다.
 
 ```powershell
 .\gradlew.bat test --tests com.jorm.entity.EntityManagerFindTest

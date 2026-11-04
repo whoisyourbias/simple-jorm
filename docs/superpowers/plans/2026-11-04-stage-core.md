@@ -1,6 +1,6 @@
 # JORM Stage Core Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 단계별 핵심 기능을 별도 워크트리의 담당 서브에이전트가 구현하고 호출자가 통합·검증한다.
 
@@ -29,19 +29,19 @@
 
 Files: `com/jorm/jdbc/BeanPropertyRowMapper.java`, JDBC tests, `doc/01-jdbc/`, HTML jdbc section.
 
-- [ ] 문서에 setter 우선/필드 fallback·이름 규칙·변환 계약 기록.
-- [ ] snake_case/setter/타입 변환/실패 경계 테스트를 추가하고 실패 확인.
-- [ ] 최소 구현 후 JDBC 테스트 실행.
-- [ ] 해당 HTML 소개 갱신 후 커밋과 검증 결과 보고.
+- [x] 문서에 setter 우선/필드 fallback·이름 규칙·변환 계약 기록.
+- [x] snake_case/setter/타입 변환/실패 경계 테스트를 추가하고 실패 확인.
+- [x] 최소 구현 후 JDBC 테스트 실행.
+- [x] 해당 HTML 소개 갱신 후 커밋과 검증 결과 보고.
 
 ## Task 02 — Mapper (stage_02_mapper)
 
 Files: `com/jorm/mapper/`, mapper tests, `doc/02-mapper/`, HTML mapper section.
 
-- [ ] @Param/이름 바인딩/default 메서드 계약 문서화.
-- [ ] 인자 순서·반복·누락·default 내부 SQL 호출 테스트 작성/실패 확인.
-- [ ] 최소 구현 후 Mapper 테스트 실행.
-- [ ] 해당 HTML 소개 갱신 후 커밋과 검증 결과 보고.
+- [x] @Param/이름 바인딩/default 메서드 계약 문서화.
+- [x] 인자 순서·반복·누락·default 내부 SQL 호출 테스트 작성/실패 확인.
+- [x] 최소 구현 후 Mapper 테스트 실행.
+- [x] 해당 HTML 소개 갱신 후 커밋과 검증 결과 보고.
 
 ## Task 03 — Transactions (stage_03_transaction)
 
@@ -49,19 +49,19 @@ Files: `com/jorm/transaction/`, transaction tests, `doc/03-transaction/`, HTML t
 
 Produces: `TransactionResource.default void beforeCommit() throws SQLException`.
 
-- [ ] 선언적/명시적 예외 정책 구분과 beforeCommit 수명 계약 문서화.
-- [ ] 예외 규칙·REQUIRED 참여·커밋 콜백 실패 롤백 테스트 작성/실패 확인.
-- [ ] 최소 구현 후 transaction 테스트 실행.
-- [ ] 해당 HTML 소개 갱신 후 커밋과 검증 결과 보고.
+- [x] 선언적/명시적 예외 정책 구분과 beforeCommit 수명 계약 문서화.
+- [x] 예외 규칙·REQUIRED 참여·커밋 콜백 실패 롤백 테스트 작성/실패 확인.
+- [x] 최소 구현 후 transaction 테스트 실행.
+- [x] 해당 HTML 소개 갱신 후 커밋과 검증 결과 보고.
 
 ## Task 04 — Entity metadata (stage_04_entity)
 
 Files: `EntityMetadata.java`, new `Transient.java`, entity metadata/CRUD tests, `doc/04-entity-crud/`, HTML entity section.
 
-- [ ] 부모 필드/ID와 저장 제외 규칙 문서화.
-- [ ] 상속 ID·transient 제외·이름 충돌 테스트 작성/실패 확인.
-- [ ] 메타데이터 계층만 최소 수정 후 CRUD 회귀 검증.
-- [ ] 해당 HTML 소개 갱신 후 커밋과 검증 결과 보고.
+- [x] 부모 필드/ID와 저장 제외 규칙 문서화.
+- [x] 상속 ID·transient 제외·이름 충돌 테스트 작성/실패 확인.
+- [x] 메타데이터 계층만 최소 수정 후 CRUD 회귀 검증.
+- [x] 해당 HTML 소개 갱신 후 커밋과 검증 결과 보고.
 
 ## Task 05 — Persistence context (stage_05_context)
 
@@ -69,16 +69,16 @@ Files: `EntityManager.java`, `EntityManagerSession.java`, `PersistenceContext.ja
 
 Consumes: 03 beforeCommit contract. Avoid changing EntityMetadata owned by 04.
 
-- [ ] 스냅샷·변경 감지·flush와 즉시 CRUD 공존 계약 문서화.
-- [ ] 동일성/자동·명시적 flush/스냅샷 갱신/롤백 테스트 작성·실패 확인.
-- [ ] 최소 구현, `EntityManager.flush()` 노출 및 beforeCommit 연결.
-- [ ] 해당 HTML 소개 갱신 후 커밋과 검증 결과 보고.
+- [x] 스냅샷·변경 감지·flush와 즉시 CRUD 공존 계약 문서화.
+- [x] 동일성/자동·명시적 flush/스냅샷 갱신/롤백 테스트 작성·실패 확인.
+- [x] 최소 구현, `EntityManager.flush()` 노출 및 beforeCommit 연결.
+- [x] 해당 HTML 소개 갱신 후 커밋과 검증 결과 보고.
 
 ## Integration
 
-- [ ] 추가 사용자 지시에 따라 전담 `orm_explainer_page`가 소개 HTML의 JORM 언급·자체 비교를 제거하고 실제 기술의 동작을 설명한다. 관련 Node/브라우저 테스트도 맞춘다.
+- [x] 추가 사용자 지시에 따라 전담 `orm_explainer_page`가 소개 HTML의 JORM 언급·자체 비교를 제거하고 실제 기술의 동작을 설명한다. 관련 Node/브라우저 테스트도 맞춘다.
 
-- [ ] 각 담당 보고/커밋 검토 후 통합 워크트리에 순서대로 반영.
-- [ ] 전역 README·진행 상황·기술 대응 문서를 실제 결과에 맞춘다.
-- [ ] `.\gradlew.bat test`, `node --test doc/tests/learning-page.test.cjs`, HTML browser smoke 검증.
-- [ ] 워크트리·브랜치·테스트 결과·남은 기술 차이를 사용자에게 보고.
+- [x] 각 담당 보고/커밋 검토 후 통합 워크트리에 순서대로 반영.
+- [x] 전역 README·진행 상황·기술 대응 문서를 실제 결과에 맞춘다.
+- [x] `.\gradlew.bat test`, `node --test doc/tests/learning-page.test.cjs`, HTML browser smoke 검증.
+- [x] 워크트리·브랜치·테스트 결과·남은 기술 차이를 사용자에게 보고.

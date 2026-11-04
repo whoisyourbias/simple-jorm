@@ -51,7 +51,7 @@ flowchart TD
 
 ## 테스트와 한계
 
-[JDBC 테스트 폴더](../../src/test/java/com/jorm/jdbc/)에서 H2 실행과 매핑 동작을 확인한다. 현재 각 호출이 Connection을 별도로 획득·반환하므로 여러 SQL 작업을 묶는 트랜잭션은 아직 제공하지 않는다.
+[JDBC 테스트 폴더](../../src/test/java/com/jorm/jdbc/)에서 H2 실행과 매핑 동작을 확인한다. 트랜잭션 밖에서는 호출별 Connection을 획득·반환하고, 같은 TransactionManager의 활성 트랜잭션 안에서는 연결을 공유한다. 경계와 롤백 규칙은 [트랜잭션 단계](../03-transaction/01-connection-and-transaction.md)에서 설명한다.
 
 Spring과 달리 `SQLException`을 `DataAccessException`으로 번역하지 않는다. Spring의 일반적인 `queryForObject`는 정확히 한 행을 요구하지만 자체 구현의 0행 null·복수행 첫 행 반환 계약은 그대로 유지한다. record 생성자 매핑, 사용자 정의 변환 서비스, LOB·vendor 전용 타입 변환은 범위 밖이다.
 

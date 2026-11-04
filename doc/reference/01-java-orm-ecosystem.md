@@ -126,19 +126,19 @@ R2DBC는 JDBC 드라이버를 교체하는 옵션이 아니라 별도의 연결 
 
 ## 5. simple-jorm의 위치와 학습 순서
 
-현재는 JDBC 실행·결과 매핑, Mapper CRUD, Service 트랜잭션 프록시·REQUIRED, 엔티티 메타데이터와 INSERT까지 구현했다. ID 조회까지 완료했고 영속성 컨텍스트는 미구현이다.
+현재는 JDBC 자동 매핑·기본 변환, Mapper CRUD·이름 바인딩·default 메서드, 선언적 롤백 규칙, 엔티티 CRUD·상속 필드·저장 제외, 영속성 컨텍스트의 동일성·변경 감지·flush를 구현했다.
 
 | 단계 | 직접 만든 기능 | 가까운 실제 기술·기능 | 상태 |
 |---|---|---|---|
 | 01 | JdbcTemplate·RowMapper·리플렉션 자동 매핑 | Spring JDBC의 실행·매핑 추상화 | 완료 |
 | 02 | SQL 어노테이션·Mapper 프록시 CRUD | MyBatis의 SQL Mapper | 기본 CRUD 완료 |
 | 03 | Connection 공유·Service 프록시·REQUIRED·rollbackOnly | Spring의 프로그램·선언적 트랜잭션 | 완료 |
-| 04 | 엔티티 메타데이터·SQL 생성 | Hibernate 등 ORM의 매핑 처리, JPA EntityManager의 저장 진입 형태 | INSERT·ID 조회 완료, 수정·삭제 미구현 |
-| 05 | 객체 동일성·변경 감지·flush | JPA 영속성 컨텍스트·Hibernate 상태 관리 | 미구현 |
+| 04 | 엔티티 메타데이터·SQL 생성 | Hibernate 등 ORM의 매핑 처리, JPA EntityManager의 저장 진입 형태 | CRUD·생성 ID·부모 필드·저장 제외 |
+| 05 | 객체 동일성·변경 감지·flush | JPA 영속성 컨텍스트·Hibernate 상태 관리 | 명시적·커밋 직전 flush 구현 |
 
 구현 클래스별 설명, MyBatis·Spring·JPA와의 차이, 공식 근거는 [단계별 대응 문서](03-learning-stage-mapping.md)에 모았다. 이 비교는 학습 역할의 대응이며 JPA 호환성이나 전체 프레임워크 구현 완료를 의미하지 않는다.
 
-현재 EntityManager는 구조 정보만 캐시하고 persist 중에 INSERT를 실행한다. JPA의 엔티티 인스턴스 관리·변경 감지는 아직 없다. 캐시의 ConcurrentHashMap 사용을 실제 JPA EntityManager의 동시 스레드 공유 가능성으로 해석해서도 안 된다.
+현재 EntityManager는 구조 정보를 캐시하고 트랜잭션별 세션에서 관리 객체·스냅샷을 보관한다. persist 중 즉시 INSERT하고, 변경 감지는 명시적 flush·바깥 커밋 직전에 실행한다. JPA의 전체 생명주기·쓰기 지연과는 다르며 ConcurrentHashMap 사용을 실제 JPA EntityManager의 동시 스레드 공유 가능성으로 해석해서도 안 된다.
 
 ## 6. 의존성 관리 관점
 
