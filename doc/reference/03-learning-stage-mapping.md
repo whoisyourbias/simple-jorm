@@ -1,6 +1,6 @@
 # 구현 단계와 실제 데이터 접근 기술의 대응
 
-기준일: 2026-11-02
+기준일: 2026-11-04
 
 simple-jorm은 JDBC 실행, SQL Mapper, 트랜잭션, 엔티티 매핑을 차례로 직접 만드는 학습 프로젝트다. 아래 대응은 **비슷한 역할을 배우고 있다는 뜻**이다. 해당 라이브러리의 전체 기능이나 표준 호환성을 구현했다는 뜻은 아니다.
 
@@ -9,10 +9,10 @@ simple-jorm은 JDBC 실행, SQL Mapper, 트랜잭션, 엔티티 매핑을 차례
 | 학습 단계 | 직접 구현한 코드 | 가까운 실제 기술·기능 | 현재 상태 |
 |---|---|---|---|
 | 01 JDBC 실행 | `JdbcTemplate`, `RowMapper` | Spring JDBC의 템플릿·행 매퍼 방식 | 단건·목록 조회, 변경 SQL, 바인딩·자원 정리 완료 |
-| 01 자동 행 매핑 | `BeanPropertyRowMapper.prepare()` | Spring JDBC의 자동 객체 매핑, MyBatis의 결과 매핑과 역할 유사 | 컬럼 라벨→직접 선언 필드 연결, 조회별 필드 배열 준비 완료 |
-| 02 SQL Mapper | `@Select`, `@Insert`, `@Update`, `@Delete`, `MapperFactory` | MyBatis의 SQL 어노테이션·Mapper 인터페이스 방식 | SQL 직접 작성, JDK 프록시 실행, 기본 CRUD 완료 |
+| 01 자동 행 매핑 | `BeanPropertyRowMapper.prepare()`, `JdbcValueConverter` | Spring JDBC의 자동 객체 매핑 | setter 우선·필드 fallback, snake_case 연결, 기본 타입 변환 |
+| 02 SQL Mapper | SQL 어노테이션, `@Param`, `MapperFactory` | MyBatis의 SQL 어노테이션·Mapper 인터페이스 방식 | 기본 CRUD, 이름 파라미터 바인딩, default 메서드 실행 |
 | 03 명시적 트랜잭션 | `TransactionManager.execute()`, `withConnection()` | JDBC 로컬 트랜잭션, Spring의 프로그램 방식 트랜잭션 관리 | 같은 관리자·스레드의 연결 공유와 커밋·롤백 완료 |
-| 03 선언적 트랜잭션 | `@Transactional`, `TransactionProxyFactory`, `TransactionInvocationHandler` | Spring의 프록시 기반 선언적 트랜잭션 | 구현 메서드 검사·호출 위임·예외 전파 완료 |
+| 03 선언적 트랜잭션 | `@Transactional`, `TransactionInvocationHandler`, `TransactionResource` | Spring의 프록시 기반 선언적 트랜잭션 | rollbackFor/noRollbackFor, checked 기본 커밋, 커밋 전 자원 동기화 |
 | 03 REQUIRED | `TransactionState`, `participate()`, `UnexpectedRollbackException` | Spring의 REQUIRED 참여·rollback-only 의미 | 기존 트랜잭션 참여, 바깥 종료, 실패를 잡아도 전체 롤백 완료 |
 | 04 엔티티 메타데이터 | `@Table`, `@Id`, `@Column`, `EntityMetadata` | Hibernate 등 JPA 구현체의 객체·테이블 매핑 분석 | 테이블명·단일 ID·컬럼 분석과 메타데이터 캐싱 완료 |
 | 04 엔티티 INSERT | `EntityManager.persist()` | JPA `EntityManager.persist()`의 저장 진입 형태와 ORM의 INSERT 생성 | ID 직접 지정·IDENTITY·UUID 생성, INSERT 즉시 실행, 변경 행 수 반환 완료 |
@@ -34,7 +34,7 @@ jdbc.queryForObject(sql, rowMapper, args);
 
 호출자가 SQL을 제공하고 `JdbcTemplate`이 바인딩·실행·자원 정리를 맡는다. `RowMapper`는 현재 행을 객체로 바꾸며, 결과 커서를 다음 행으로 옮기는 것은 템플릿의 책임이다.
 
-우리 자동 매퍼는 기본 생성자로 객체를 만들고 필드에 직접 값을 쓴다. `prepare()`는 컬럼 순서별 Field 배열을 조회마다 준비한다. Spring 클래스와 이름이 같아도 동일 구현은 아니다. 별도 타입 변환·상속 필드·엔티티 상태 관리는 없고, `@Column`도 해석하지 않는다.
+우리 자동 매퍼는 기본 생성자로 객체를 만들고 public JavaBean setter를 우선 사용하며, setter가 없으면 직접 선언 필드에 값을 쓴다. 대소문자와 snake_case 별칭을 지원하고, `prepare()`가 조회별 컬럼 연결을 준비한다. 숫자 손실을 거부하는 기본 변환과 JDBC 날짜·시간 변환을 지원한다. Spring의 ConversionService·record 매핑·전체 프로퍼티 검사까지 구현한 것은 아니다. 엔티티 `@Column`도 해석하지 않는다. 단건 조회는 0행 null·여러 행 첫 행을 유지하고 SQLException을 전달하므로 Spring의 엄격한 단건 계약·예외 변환과는 다르다.
 
 코드: [JdbcTemplate](../../src/main/java/com/jorm/jdbc/JdbcTemplate.java), [BeanPropertyRowMapper](../../src/main/java/com/jorm/jdbc/BeanPropertyRowMapper.java).
 
@@ -45,7 +45,7 @@ jdbc.queryForObject(sql, rowMapper, args);
 User findById(Long id);
 ```
 
-이 단계는 MyBatis식 SQL Mapper를 이해하기 위한 구현이다. SQL은 개발자가 작성하고 프록시는 메서드의 어노테이션을 읽어 실행한다. 아직 XML·동적 SQL·복잡한 관계 매핑 같은 MyBatis 기능을 구현한 것은 아니다.
+이 단계는 MyBatis식 SQL Mapper를 이해하기 위한 구현이다. SQL은 개발자가 작성하고 프록시는 메서드의 어노테이션을 읽어 실행한다. 기존 `?` 외에 자체 `@Param("id")`와 `#{id}`를 연결한다. 값은 문자열에 합치지 않고 PreparedStatement에 바인딩한다. default 메서드는 본문을 실행하며 내부 Mapper 호출도 프록시를 통한다. XML·동적 SQL·복잡한 관계 매핑·SqlSession 캐시와 bean 속성 경로는 지원하지 않는다.
 
 여기서 **Mapper**는 SQL 호출 인터페이스이고, **RowMapper**는 결과 한 행을 변환하는 콜백이다. 두 역할을 구분해야 한다.
 
@@ -61,7 +61,7 @@ Service A 프록시 → 트랜잭션 시작
 
 같은 `TransactionManager`의 ThreadLocal 상태를 이용해 현재 스레드의 Connection을 공유한다. 프록시에서 구현 메서드의 어노테이션을 읽고 업무를 `execute()`로 감싼다. 자기 호출은 새 프록시 경계를 만들지 않지만, 이미 시작한 바깥 트랜잭션의 연결은 사용할 수 있다.
 
-Spring과의 차이도 있다. 우리 프록시는 구현 메서드의 표시만 읽고 수동 생성·주입하며 클래스 프록시는 없다. 기본 정책은 checked 업무 예외도 롤백한다. Spring의 기본 롤백 규칙은 RuntimeException·Error 중심이며 별도로 변경할 수 있다. [Spring @Transactional](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html)
+우리 선언적 경계의 기본 롤백 정책은 Spring처럼 RuntimeException·Error이며, checked 업무 예외는 커밋 후 원본을 다시 던진다. `rollbackFor`·`noRollbackFor`로 변경하며 가장 구체적인 예외 타입이 우선한다. 명시적 `TransactionManager.execute()`는 기존 SQLException 롤백 계약을 유지한다. 우리 프록시는 구현 메서드의 표시만 읽고 수동 생성·주입하며 클래스 프록시는 없다. 자원의 `beforeCommit()` 실패는 전체 롤백하고 종료 콜백으로 정리한다. [Spring @Transactional](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html)
 
 REQUIRED는 하나의 트랜잭션에 참여하는 방식이다. savepoint로 안쪽만 취소하는 NESTED나 독립 트랜잭션을 시작하는 REQUIRES_NEW는 구현하지 않았다.
 

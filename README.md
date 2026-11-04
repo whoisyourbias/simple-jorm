@@ -19,9 +19,9 @@ Spring Boot 애플리케이션이나 JPA 구현체가 아니다. 서버 실행 �
 
 | 계층 | 지원 기능 | 주요 제약 |
 |---|---|---|
-| JDBC | 파라미터 바인딩, 단건·목록 조회, 변경 SQL, 자원 정리, 수동·자동 행 매핑 | 단건 조회는 결과가 없으면 `null`, 여러 행이면 첫 행 반환 |
-| Mapper | `@Select`, `@Insert`, `@Update`, `@Delete`, JDK 프록시 | 조회는 매핑 가능한 객체 또는 `List<T>`, 변경은 `int` 반환. default 메서드 실행 미지원 |
-| 트랜잭션 | 같은 스레드·관리자의 Connection 공유, commit·rollback, REQUIRED 참여, rollbackOnly, Service 프록시 | 자기 호출은 프록시를 통과하지 않음. 다른 관리자·스레드와 트랜잭션 공유 안 됨 |
+| JDBC | SQL 실행·자원 정리, setter 우선 자동 매핑, snake_case·기본 타입 변환 | 단건 0행은 `null`, 여러 행은 첫 행. SQLException 전달 |
+| Mapper | SQL 어노테이션, `@Param`·`#{name}`, JDK 프록시·default 메서드 | 조회 객체 또는 `List<T>`, 변경 `int`. XML·동적 SQL·속성 경로 없음 |
+| 트랜잭션 | Connection 공유, REQUIRED·rollbackOnly, 선언적 롤백 규칙, 커밋 전 자원 동기화 | 선언적 checked 기본 커밋. 명시적 execute의 SQLException 롤백 유지. 자기 호출은 프록시 미통과 |
 | 엔티티 | `@Table`, `@Id`, `@Column`, 클래스별 메타데이터 캐시, `persist`, `find`, `update`, `remove` | 직접 지정 또는 IDENTITY·UUID 단일 ID 사용. `persist`는 즉시 INSERT하고 변경 행 수 반환 |
 | 영속성 컨텍스트 | 트랜잭션별 세션, 관리 객체 동일성, REQUIRED 재사용, 종료 시 정리 | Long·Integer·String·UUID와 long·int ID 캐싱. 명시적 수정·삭제 유지 |
 

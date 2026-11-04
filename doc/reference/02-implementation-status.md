@@ -1,6 +1,6 @@
 # 구현 상세와 현재 제약
 
-기준일: 2026-11-03. 단계별 요약은 [진행 상황](../00-overview/01-progress.md)을 참고한다.
+기준일: 2026-11-04. 단계별 요약은 [진행 상황](../00-overview/01-progress.md)을 참고한다.
 
 ## JDBC와 자동 매핑
 
@@ -8,8 +8,8 @@
 - `JdbcTemplate`은 파라미터 바인딩, JDBC 자원 정리, 단건 조회, 목록 조회와 데이터 변경을 담당한다.
 - `queryForObject`는 결과가 없으면 null, 여러 행이면 첫 번째 행만 반환한다.
 - `RowMapper<T>`는 조회 결과 한 행을 객체로 변환하는 콜백이다.
-- `BeanPropertyRowMapper<T>`는 기본 생성자와 필드 리플렉션을 사용한다. 컬럼 라벨과 필드명을 대소문자 구분 없이 연결한다.
-- 상속 필드, final 필드, record, 별도 타입 변환은 지원하지 않는다.
+- `BeanPropertyRowMapper<T>`는 기본 생성자와 public JavaBean setter를 우선 사용하고 선언 필드를 fallback으로 사용한다. 컬럼 라벨의 대소문자·snake_case를 연결하고 기본 숫자·boolean·char·JDBC 날짜/시간 변환을 지원한다.
+- 상속 setter는 지원하지만 상속 필드 fallback·record·임의의 값 타입 변환은 지원하지 않는다. NULL→primitive와 숫자 손실은 매핑 오류로 거부한다.
 - 활성 트랜잭션 안에서는 같은 관리자의 연결을 공유하고 Statement·ResultSet만 닫는다. 밖에서는 호출별 연결을 획득·반환한다.
 - H2 기반 실행·매핑 테스트가 있다. [JDBC 상세](../01-jdbc/01-jdbc-and-row-mapping.md).
 
@@ -20,7 +20,8 @@
 - `MapperInvocationHandler`는 Object 메서드 처리, 인자 바인딩, SQL 실행과 결과 매핑을 담당한다.
 - @Select는 단건 객체와 List<T>를 반환한다. 결과가 없으면 각각 null과 빈 리스트다.
 - @Insert·@Update·@Delete는 영향받은 행 수를 int로 반환한다. SQL 어노테이션 중복과 잘못된 변경 반환 타입은 실행 전에 거부한다.
-- 생성 ID 반환, default 메서드 실행, 컴파일 타임 어노테이션 검사는 지원하지 않는다. 조회는 자동 매핑 가능한 객체 또는 List<T>만 지원한다.
+- 자체 `@Param`과 `#{name}`를 SQL 토큰 순서대로 바인딩하고 반복·null 인자도 지원한다. default 메서드 본문과 내부 Mapper 호출을 실행한다.
+- 생성 ID 반환, XML·동적 SQL·bean 속성 경로·SqlSession 캐시·컴파일 타임 어노테이션 검사는 지원하지 않는다. 조회는 자동 매핑 가능한 객체 또는 List<T>만 지원한다.
 - `MapperFactoryTest`의 20개 테스트를 포함한 전체 테스트를 검증한다.
 - [실행 흐름](../02-mapper/01-proxy-execution.md)과 [테스트 목록](../02-mapper/02-tests-and-next-steps.md).
 
@@ -28,6 +29,8 @@
 
 - TransactionManager는 스레드별 연결과 rollbackOnly 원인을 관리한다. REQUIRED 참여자는 기존 연결을 사용하며 바깥 호출이 commit·rollback과 연결 정리를 담당한다.
 - Service 프록시는 구현 메서드의 @Transactional을 검사한다. 자기 호출, 두 Service 간 참여, 예외 전파·삼킴 이후 전체 롤백을 테스트했다.
+- 선언적 기본 정책은 RuntimeException·Error 롤백이며 checked 예외는 커밋 후 원본 재전파다. rollbackFor/noRollbackFor 중 가장 구체적인 예외 타입이 우선한다. 명시적 execute는 SQLException 롤백을 유지한다.
+- 정상 커밋 전 TransactionResource.beforeCommit으로 같은 연결에서 동기화한다. 실패하면 전체 롤백하고 afterCompletion은 계속 수행한다. 동기화 중 새 자원 등록과 중첩 execute는 거부한다.
 - EntityMetadata는 @Table·@Id·@Column, 단일 ID, 컬럼-필드 대응을 분석한다. static·synthetic 필드는 제외하고 final 필드·잘못된 선언은 거부한다.
 - EntityManager는 클래스별 메타데이터를 캐시하고 persist에서 INSERT를 즉시 실행한다. 직접 지정 ID는 포함하고, IDENTITY 생성 ID는 제외한 뒤 같은 연결에서 키를 회수해 객체에 반영한다. find는 메타데이터로 SELECT를 만들고 기본 생성자로 새 객체를 생성한다. 생성 ID는 Long·Integer의 IDENTITY와 UUID·String의 UUID 전략을 지원한다. UUID는 INSERT 전에 생성해 ID 컬럼에 바인딩한다. 엔티티 update·remove도 즉시 실행한다. 현재 find는 트랜잭션별 세션의 관리 객체를 우선 반환한다.
 - update는 ID 외 모든 필드를 SET에, 실제 ID 컬럼을 WHERE에 사용한다. remove는 ID 조건으로 삭제한다. null 객체·null ID와 ID 전용 엔티티의 update는 거부한다. 둘 다 int 변경 행 수를 반환하고 기존 트랜잭션에 참여한다. [변경·삭제 상세](../04-entity-crud/05-update-and-remove.md).

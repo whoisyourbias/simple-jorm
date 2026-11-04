@@ -76,6 +76,8 @@ Consumes: 03 beforeCommit contract. Avoid changing EntityMetadata owned by 04.
 
 ## Integration
 
+- [ ] 추가 사용자 지시에 따라 전담 `orm_explainer_page`가 소개 HTML의 JORM 언급·자체 비교를 제거하고 실제 기술의 동작을 설명한다. 관련 Node/브라우저 테스트도 맞춘다.
+
 - [ ] 각 담당 보고/커밋 검토 후 통합 워크트리에 순서대로 반영.
 - [ ] 전역 README·진행 상황·기술 대응 문서를 실제 결과에 맞춘다.
 - [ ] `.\gradlew.bat test`, `node --test doc/tests/learning-page.test.cjs`, HTML browser smoke 검증.
