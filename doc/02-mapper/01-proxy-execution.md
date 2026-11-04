@@ -4,7 +4,7 @@
 
 작성일: 2026-10-30
 
-> 이 문서는 SQL 출력까지만 구현했던 초기 단계의 실행 과정을 보존한다. 현재는 JDBC 조회와 INSERT·UPDATE·DELETE를 지원한다. 최신 동작과 테스트는 [현재 Mapper 기능](02-tests-and-next-steps.md)을 참고한다.
+> 이 문서는 SQL 출력까지만 구현했던 초기 단계의 실행 과정을 보존한다. 아래의 미지원 설명도 당시 기준이다. 현재는 JDBC 조회와 INSERT·UPDATE·DELETE, 명시적 `@Param` 이름 바인딩과 인터페이스 default 메서드 실행을 지원한다. 최신 동작과 테스트는 [현재 Mapper 기능](02-tests-and-next-steps.md)을 참고한다.
 
 ## 현재 구현 범위
 
