@@ -1,12 +1,12 @@
 # simple-jorm 학습 문서
 
-**[단계별 학습 웹페이지 · JDK 프록시 애니메이션](index.html)** — 브라우저에서 직접 열 수 있는 독립 HTML. 각 단계의 문제·해결·내부 구조와 실제 Java 기술의 구현 차이를 정리했다.
+**[Java 데이터 접근 기술 · 실행 애니메이션](index.html)** — 실제 Spring JDBC·MyBatis·Spring 트랜잭션·JPA/Hibernate가 동작하는 과정을 설명하는 독립 HTML. 저장소 구현의 지원 범위는 아래 단계별 문서에서 확인한다.
 
 페이지 상태 전환 검증: 저장소 루트에서 `node --test doc/tests/learning-page.test.cjs` (Node.js 기본 테스트 실행기 사용).
 
 브라우저 검증: Node.js 22 이상과 설치된 Chrome으로 `node doc/tests/browser-smoke.cjs`. Windows 기본 설치 경로 외에는 `CHROME_PATH`로 실행 파일을 지정한다. 결과와 스크린샷은 `build/page-qa/`에 생성된다.
 
-학습 순서대로 번호를 붙였다. 현재는 **05 영속성 컨텍스트의 객체 동일성과 세션 수명 관리까지 구현**했다. 다음은 스냅샷·변경 감지·flush다.
+학습 순서대로 번호를 붙였다. 현재는 **각 단계의 핵심 기능과 05 영속성 컨텍스트의 객체 동일성·변경 감지·flush를 구현**했다.
 
 ## 폴더 구조
 
@@ -28,8 +28,9 @@ doc/
 │  ├─ 02-find-by-id.md
 │  ├─ 03-identity-generated-id.md
 │  ├─ 04-uuid-generated-id.md
-│  └─ 05-update-and-remove.md
-├─ 05-persistence-context/        # 객체 동일성·세션 수명, 이후 변경 감지
+│  ├─ 05-update-and-remove.md
+│  └─ 06-inherited-and-transient-fields.md
+├─ 05-persistence-context/        # 객체 동일성·스냅샷·변경 감지·flush
 │  ├─ 01-concepts-and-lifecycle.md
 │  └─ 02-implementation-checkpoints.md
 ├─ reference/                     # 기술·구현 상세 자료
@@ -53,10 +54,10 @@ doc/
 |---|---|---|
 | 00 | [진행 상황](00-overview/01-progress.md), [Java 데이터 접근 생태계](00-overview/02-java-orm-ecosystem.md) | 전체 안내 |
 | 01 | [JDBC 실행과 결과 매핑](01-jdbc/01-jdbc-and-row-mapping.md) | 구현 완료 |
-| 02 | [JVM부터 프록시 호출까지](02-mapper/01-proxy-execution.md), [테스트와 다음 작업](02-mapper/02-tests-and-next-steps.md) | 기본 CRUD 완료 |
-| 03 | [Connection 공유와 트랜잭션](03-transaction/01-connection-and-transaction.md) | Service 프록시·REQUIRED 완료 |
-| 04 | [엔티티 매핑과 INSERT](04-entity-crud/01-metadata-and-insert.md), [ID 조회](04-entity-crud/02-find-by-id.md), [UPDATE·DELETE](04-entity-crud/05-update-and-remove.md) | 기본 CRUD·IDENTITY·UUID 완료 |
-| 05 | [영속성 컨텍스트와 생명주기](05-persistence-context/01-concepts-and-lifecycle.md), [현재 구현과 검증 항목](05-persistence-context/02-implementation-checkpoints.md) | 객체 동일성·세션 수명 완료, 변경 감지·flush 예정 |
+| 02 | [JVM부터 프록시 호출까지](02-mapper/01-proxy-execution.md), [테스트와 다음 작업](02-mapper/02-tests-and-next-steps.md) | CRUD·이름 바인딩·default 메서드 |
+| 03 | [Connection 공유와 트랜잭션](03-transaction/01-connection-and-transaction.md) | REQUIRED·선언적 롤백 규칙·커밋 전 콜백 |
+| 04 | [엔티티 매핑과 INSERT](04-entity-crud/01-metadata-and-insert.md), [상속·저장 제외](04-entity-crud/06-inherited-and-transient-fields.md) | CRUD·생성 ID·부모 필드·@Transient |
+| 05 | [영속성 컨텍스트와 생명주기](05-persistence-context/01-concepts-and-lifecycle.md), [구현 계약과 검증 항목](05-persistence-context/02-implementation-checkpoints.md) | 객체 동일성·스냅샷·변경 감지·flush |
 | 실험 | [실험 목록과 재현 안내](lab/README.md) | 학습 순서와 별도로 관리 |
 
 ## 단계별 실제 기술과의 대응

@@ -1,6 +1,6 @@
 # simple-jorm
 
-구현 과정을 그림과 실행 애니메이션으로 살펴보려면 **[ORM은 어떻게 만들어질까 — 학습 웹페이지](doc/index.html)**를 연다. HTML 한 파일로 오프라인에서도 동작하며, JDK 동적 프록시와 실제 라이브러리의 구현 차이를 설명한다.
+실제 데이터 접근 기술의 동작은 **[Java 데이터 접근 기술 — 학습 웹페이지](doc/index.html)**에서 그림과 실행 애니메이션으로 살펴본다. HTML 한 파일로 오프라인에서도 동작하며 Spring JDBC·MyBatis·Spring 트랜잭션·JPA/Hibernate의 내부 흐름을 설명한다. 이 저장소의 구현 범위는 아래 표와 단계별 문서에서 확인한다.
 
 JDBC에서 SQL Mapper, 트랜잭션, 엔티티 매핑으로 확장하며 Java 데이터 접근 기술의 내부 동작을 학습하는 라이브러리다. AI 에이전트가 저장소를 탐색하고 수정·검증할 때 사용할 진입 문서이기도 하다.
 
@@ -15,27 +15,27 @@ Spring Boot 애플리케이션이나 JPA 구현체가 아니다. 서버 실행 �
 
 ## 현재 지원 범위
 
-기준: 2026-11-03. 엔티티 CRUD·생성 ID와 트랜잭션별 영속성 컨텍스트의 객체 동일성을 구현했다.
+기준: 2026-11-04. 각 단계의 핵심 기능과 트랜잭션별 객체 동일성·변경 감지·flush를 구현했다.
 
 | 계층 | 지원 기능 | 주요 제약 |
 |---|---|---|
 | JDBC | SQL 실행·자원 정리, setter 우선 자동 매핑, snake_case·기본 타입 변환 | 단건 0행은 `null`, 여러 행은 첫 행. SQLException 전달 |
 | Mapper | SQL 어노테이션, `@Param`·`#{name}`, JDK 프록시·default 메서드 | 조회 객체 또는 `List<T>`, 변경 `int`. XML·동적 SQL·속성 경로 없음 |
 | 트랜잭션 | Connection 공유, REQUIRED·rollbackOnly, 선언적 롤백 규칙, 커밋 전 자원 동기화 | 선언적 checked 기본 커밋. 명시적 execute의 SQLException 롤백 유지. 자기 호출은 프록시 미통과 |
-| 엔티티 | `@Table`, `@Id`, `@Column`, 클래스별 메타데이터 캐시, `persist`, `find`, `update`, `remove` | 직접 지정 또는 IDENTITY·UUID 단일 ID 사용. `persist`는 즉시 INSERT하고 변경 행 수 반환 |
-| 영속성 컨텍스트 | 트랜잭션별 세션, 관리 객체 동일성, REQUIRED 재사용, 종료 시 정리 | Long·Integer·String·UUID와 long·int ID 캐싱. 명시적 수정·삭제 유지 |
+| 엔티티 | 부모 필드·단일 ID, `@Table`·`@Column`·`@Transient`, 메타데이터 캐시, CRUD | 구체 클래스의 한 테이블에 매핑. 직접 지정·IDENTITY·UUID ID. 즉시 SQL·변경 행 수 반환 |
+| 영속성 컨텍스트 | 객체 동일성·스냅샷·변경 감지, 명시적 flush·커밋 직전 자동 flush | Long·Integer·String·UUID와 long·int ID 관리. 즉시 CRUD 유지, 조회 전 자동 flush 없음 |
 
 아직 구현하지 않은 기능:
 
 - SEQUENCE·TABLE·AUTO ID 생성 전략.
-- 스냅샷, 자동 변경 감지, flush, 쓰기 지연.
-- 관계 매핑, 복합 ID, 상속 필드 매핑, 별도 값 타입 변환.
+- INSERT·DELETE 쓰기 지연, 조회 전 자동 flush, 관계·생명주기 전체 관리.
+- 관계 매핑, 복합 ID, JPA 상속 전략, 별도 엔티티 값 타입 변환.
 
 `find`는 같은 관리자·트랜잭션 안에서 관리 객체를 재사용한다. 트랜잭션 밖이나 캐싱 대상 외의 ID 타입은 매번 SELECT하고 새 객체를 만든다. 조회 타입에는 접근 가능한 기본 생성자가 필요하다. `persist`에는 기본 생성자가 필요 없다. 같은 이름의 JPA API와 동작이 같다고 가정하지 않는다.
 
 엔티티 update·remove는 ID 조건으로 즉시 SQL을 실행하고 변경 행 수를 반환한다. 대상이 없으면 0이며, null 객체·null ID와 ID 전용 타입의 update는 거부한다. [UPDATE·DELETE 사용법](doc/04-entity-crud/05-update-and-remove.md)을 참고한다.
 
-다음 학습 순서는 스냅샷·변경 감지·flush다. [개념과 생명주기](doc/05-persistence-context/01-concepts-and-lifecycle.md), [현재 구현과 검증 항목](doc/05-persistence-context/02-implementation-checkpoints.md)을 먼저 읽는다. 현재 트랜잭션에 같은 ID의 관리 객체가 있으면 별도 객체의 persist·update를 거부한다. 직접 JDBC·Mapper 변경은 관리 객체를 자동 갱신하지 않는다.
+관리 객체의 매핑 필드를 바꾸면 명시적 `flush()` 또는 가장 바깥 커밋 직전에 UPDATE한다. flush는 활성 트랜잭션이 필요하며 commit과 다르다. 성공 후에도 트랜잭션 전체를 롤백할 수 있다. [개념과 생명주기](doc/05-persistence-context/01-concepts-and-lifecycle.md), [구현 계약과 검증 항목](doc/05-persistence-context/02-implementation-checkpoints.md)을 참고한다. 같은 ID의 다른 객체 persist·update는 거부하며, 직접 JDBC·Mapper 변경은 관리 객체를 자동 갱신하지 않는다.
 
 ## 환경과 검증 명령
 
@@ -66,7 +66,7 @@ bash ./gradlew build
 
 Windows PowerShell에서는 `bash ./gradlew` 대신 `.\gradlew.bat`을 사용한다.
 
-테스트 HTML 보고서는 `build/reports/tests/test/index.html`, XML 결과는 `build/test-results/test/`에 생성된다. 기존 진행 문서에는 전체 148개 테스트 통과가 기록되어 있다. 이 수치를 현재 실행 결과로 간주하지 말고, 검증 시 실행한 명령·결과를 별도로 보고한다. JDK 21을 찾지 못하면 먼저 로컬 설치와 Gradle toolchain 탐지를 확인한다.
+테스트 HTML 보고서는 `build/reports/tests/test/index.html`, XML 결과는 `build/test-results/test/`에 생성된다. 최신 통합 검증 기록은 [진행 상황](doc/00-overview/01-progress.md)에 둔다. 과거 수치를 현재 실행 결과로 간주하지 말고 실행 명령·결과를 별도로 확인한다. JDK 21을 찾지 못하면 로컬 설치와 Gradle toolchain 탐지를 확인한다.
 
 ## 코드 구조와 탐색 지점
 

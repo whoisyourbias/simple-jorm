@@ -14,11 +14,11 @@ simple-jorm은 JDBC 실행, SQL Mapper, 트랜잭션, 엔티티 매핑을 차례
 | 03 명시적 트랜잭션 | `TransactionManager.execute()`, `withConnection()` | JDBC 로컬 트랜잭션, Spring의 프로그램 방식 트랜잭션 관리 | 같은 관리자·스레드의 연결 공유와 커밋·롤백 완료 |
 | 03 선언적 트랜잭션 | `@Transactional`, `TransactionInvocationHandler`, `TransactionResource` | Spring의 프록시 기반 선언적 트랜잭션 | rollbackFor/noRollbackFor, checked 기본 커밋, 커밋 전 자원 동기화 |
 | 03 REQUIRED | `TransactionState`, `participate()`, `UnexpectedRollbackException` | Spring의 REQUIRED 참여·rollback-only 의미 | 기존 트랜잭션 참여, 바깥 종료, 실패를 잡아도 전체 롤백 완료 |
-| 04 엔티티 메타데이터 | `@Table`, `@Id`, `@Column`, `EntityMetadata` | Hibernate 등 JPA 구현체의 객체·테이블 매핑 분석 | 테이블명·단일 ID·컬럼 분석과 메타데이터 캐싱 완료 |
+| 04 엔티티 메타데이터 | `@Table`, `@Id`, `@Column`, `@Transient`, `EntityMetadata` | Hibernate 등 JPA 구현체의 객체·테이블 매핑 분석 | 부모 필드·단일 ID, 저장 제외 필드, 메타데이터 캐싱 |
 | 04 엔티티 INSERT | `EntityManager.persist()` | JPA `EntityManager.persist()`의 저장 진입 형태와 ORM의 INSERT 생성 | ID 직접 지정·IDENTITY·UUID 생성, INSERT 즉시 실행, 변경 행 수 반환 완료 |
 | 04 엔티티 ID 조회 | `EntityManager.find()` | JPA EntityManager.find의 ID 조회 진입 형태 | SELECT·컬럼 매핑 구현. Stage 5에서 관리 객체 재사용 추가 |
 | 04 엔티티 변경·삭제 | EntityManager.update·remove | ORM의 CRUD SQL 생성 | ID 조건의 즉시 UPDATE·DELETE, 변경 행 수 반환 완료 |
-| 05 영속성 컨텍스트 | 세션·컨텍스트·객체 동일성, 이후 스냅샷·변경 감지·flush | JPA의 영속성 컨텍스트, Hibernate의 엔티티 상태 관리 | [객체 동일성·세션 수명](../05-persistence-context/02-implementation-checkpoints.md) 구현, 변경 감지·flush 예정 |
+| 05 영속성 컨텍스트 | 세션·동일성·스냅샷·변경 감지·flush | JPA의 영속성 컨텍스트, Hibernate의 엔티티 상태 관리 | [명시적·커밋 직전 flush](../05-persistence-context/02-implementation-checkpoints.md), 변경 객체만 UPDATE |
 
 Spring JDBC는 자원 생성·반환과 SQL 실행의 공통 작업을 처리하고 SQL·결과 추출을 호출자에게 맡긴다. MyBatis는 직접 작성한 SQL과 Mapper 인터페이스를 연결한다. 이 두 설명이 각각 01·02 단계의 비교 근거다. [Spring JDBC 공식 문서](https://docs.spring.io/spring-framework/reference/data-access/jdbc/core.html), [MyBatis Java API](https://mybatis.org/mybatis-3/java-api.html)
 
@@ -86,10 +86,11 @@ entityManager.persist(user);
 |---|---|---|
 | API·어노테이션 | 직접 정의한 `com.jorm.entity` 타입 | `jakarta.persistence` 표준 API와 provider 구현 |
 | 엔티티 선언 | `@Table`만 검사. `@Entity`는 없음 | JPA 엔티티 선언·매핑 규칙 적용 |
+| 상속·저장 제외 | 부모 필드까지 구체 클래스의 한 테이블에 매핑. transient·자체 @Transient 제외 | MappedSuperclass·상속 전략·표준 Transient 규칙 제공 |
 | `persist()` 의미 | 즉시 INSERT, `int` 변경 행 수 반환 | 엔티티를 영속성 컨텍스트의 관리 상태로 만들며 반환 타입은 void |
 | INSERT 시점 | persist 호출 중 SQL 실행 | flush·식별자 전략 등 조건에 따라 SQL 실행 시점 결정 |
 | ID | 직접 지정, IDENTITY(Long·Integer), UUID(UUID·String) | 직접 지정 또는 생성 전략 사용 가능 |
-| 저장 후 객체 변경 | 명시적 update 호출 시 모든 비ID 필드 수정. 자동 UPDATE 없음 | 관리 상태 엔티티의 변경을 DB와 동기화하는 규칙 제공 |
+| 저장 후 객체 변경 | 관리 객체의 변경을 명시적 flush·커밋 직전에 UPDATE. 명시적 update도 유지 | 관리 상태 엔티티의 변경을 flush 규칙에 따라 DB와 동기화 |
 | 캐시 | 클래스별 매핑 정보와 트랜잭션별 세션의 관리 객체 저장 | 영속성 컨텍스트에서 엔티티 인스턴스·생명주기 관리 |
 | 여러 스레드 사용 | 현재 공유 캐시·독립 객체의 동시 INSERT를 테스트함 | 실제 EntityManager·영속성 컨텍스트를 여러 스레드가 동시에 공유해서는 안 됨 |
 
@@ -99,6 +100,6 @@ JPA의 persist·flush·영속성 컨텍스트·스레드 사용 규칙은 [Jakar
 
 ## 아직 구현하지 않은 계층
 
-- 스냅샷·변경 감지·flush는 05 단계의 후속 작업이다. 객체 동일성과 트랜잭션별 세션 수명을 먼저 구현했다.
+- 객체 동일성·변경 감지·flush는 구현했다. INSERT·DELETE 쓰기 지연, 조회 전 AUTO flush, 관계·merge/clear·낙관적 잠금은 남는 차이다.
 - Spring Data JPA식 Repository 자동 생성: 현재 EntityManager 위에 별도로 구성할 수 있는 계층이며 아직 구현하지 않았다.
 - jOOQ식 SQL DSL, Spring Data JDBC의 Aggregate 저장 모델, R2DBC 실행: 현재 구현 경로에 포함하지 않는다. 기술별 관계는 [생태계 상세 문서](01-java-orm-ecosystem.md)를 참고한다.

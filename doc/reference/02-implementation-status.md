@@ -31,10 +31,10 @@
 - Service 프록시는 구현 메서드의 @Transactional을 검사한다. 자기 호출, 두 Service 간 참여, 예외 전파·삼킴 이후 전체 롤백을 테스트했다.
 - 선언적 기본 정책은 RuntimeException·Error 롤백이며 checked 예외는 커밋 후 원본 재전파다. rollbackFor/noRollbackFor 중 가장 구체적인 예외 타입이 우선한다. 명시적 execute는 SQLException 롤백을 유지한다.
 - 정상 커밋 전 TransactionResource.beforeCommit으로 같은 연결에서 동기화한다. 실패하면 전체 롤백하고 afterCompletion은 계속 수행한다. 동기화 중 새 자원 등록과 중첩 execute는 거부한다.
-- EntityMetadata는 @Table·@Id·@Column, 단일 ID, 컬럼-필드 대응을 분석한다. static·synthetic 필드는 제외하고 final 필드·잘못된 선언은 거부한다.
+- EntityMetadata는 @Table·@Id·@Column, 부모 클래스 필드·단일 ID, 컬럼-필드 대응을 분석한다. static·synthetic·Java transient·자체 @Transient 필드를 제외한다. 계층의 중복 ID·컬럼·숨긴 매핑 필드와 매핑 대상 final 필드는 SQL 실행 전에 거부한다. 구체 엔티티의 한 테이블을 사용하며 JPA 상속 전략은 지원하지 않는다.
 - EntityManager는 클래스별 메타데이터를 캐시하고 persist에서 INSERT를 즉시 실행한다. 직접 지정 ID는 포함하고, IDENTITY 생성 ID는 제외한 뒤 같은 연결에서 키를 회수해 객체에 반영한다. find는 메타데이터로 SELECT를 만들고 기본 생성자로 새 객체를 생성한다. 생성 ID는 Long·Integer의 IDENTITY와 UUID·String의 UUID 전략을 지원한다. UUID는 INSERT 전에 생성해 ID 컬럼에 바인딩한다. 엔티티 update·remove도 즉시 실행한다. 현재 find는 트랜잭션별 세션의 관리 객체를 우선 반환한다.
 - update는 ID 외 모든 필드를 SET에, 실제 ID 컬럼을 WHERE에 사용한다. remove는 ID 조건으로 삭제한다. null 객체·null ID와 ID 전용 엔티티의 update는 거부한다. 둘 다 int 변경 행 수를 반환하고 기존 트랜잭션에 참여한다. [변경·삭제 상세](../04-entity-crud/05-update-and-remove.md).
-- 영속성 컨텍스트의 객체 동일성·세션 수명·CRUD 일관성과 트랜잭션 자원 종료 검증을 추가했다. 엔티티 테스트 97개를 포함한 전체 177개가 `.\gradlew.bat test`로 통과했다.
+- 객체 동일성·스냅샷·변경 감지·CRUD 일관성·상속 매핑·롤백 규칙을 검증한다. 최신 통합 실행 결과는 [진행 상황](../00-overview/01-progress.md)에 기록한다.
 
 ## 영속성 컨텍스트
 
@@ -43,6 +43,8 @@
 - Long·Integer·String·UUID와 long·int ID의 관리 객체를 재사용한다. 다른 ID 타입과 트랜잭션 밖에서는 기존처럼 조회한다.
 - persist 성공 후 등록하고, 같은 ID의 다른 관리 객체가 있으면 persist·update를 거부한다. remove·0행 update는 해당 캐시 키를 제거한다.
 - SQL 실패와 INSERT 후 등록 실패는 rollbackOnly로 표시한다. 종료 중 재진입은 거부하고 자원 정리 실패는 원래 예외에 보존한다.
+- find·persist 성공 시 스냅샷을 등록한다. 활성 트랜잭션의 EntityManager.flush 또는 가장 바깥 beforeCommit에서 변경 객체만 UPDATE하고 스냅샷을 갱신한다. byte[]·JDBC 날짜/시간의 내부 변경을 감지한다.
+- flush는 commit하지 않는다. 이후 롤백으로 DB 변경을 취소할 수 있고, 잡힌 SQL 실패도 rollbackOnly를 유지한다. 조회 전 자동 flush·쓰기 지연·관계 매핑·임의 mutable 객체의 깊은 복사는 지원하지 않는다.
 - [개념과 생명주기](../05-persistence-context/01-concepts-and-lifecycle.md), [호출 흐름·계약·검증](../05-persistence-context/02-implementation-checkpoints.md)에 범위를 정리했다.
 
 ## 실제 기술과의 대응
@@ -53,7 +55,7 @@ JDBC·행 매핑은 Spring JDBC, Mapper 인터페이스·SQL 어노테이션은 
 
 ## 다음 작업
 
-1. 영속성 컨텍스트의 스냅샷·변경 감지·flush를 학습한다.
+이번 요청 범위의 핵심 구현을 마쳤다. 남는 차이는 단계별 문서에 기록했으며 추가 기능은 후속 학습 범위로 정한다.
 
 ## 실험과 검증 기록
 
