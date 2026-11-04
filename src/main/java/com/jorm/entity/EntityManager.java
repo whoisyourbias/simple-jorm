@@ -36,6 +36,16 @@ public class EntityManager {
         return withSession(session -> session.remove(entity));
     }
 
+    /** 관리 객체의 변경을 동기화한다. 활성 트랜잭션이 필요하며 commit하지 않는다. */
+    public void flush() throws SQLException {
+        EntityManagerHolder holder = jdbcTemplate.getTransactionManager().getOrCreateResource(
+                SESSION_RESOURCE_KEY, () -> new EntityManagerHolder(newSession()));
+        if (holder == null) {
+            throw new IllegalStateException("flush에는 활성 트랜잭션이 필요합니다.");
+        }
+        holder.getSession().flush();
+    }
+
     private <T> T withSession(SessionCallback<T> callback) throws SQLException {
         EntityManagerHolder holder = jdbcTemplate.getTransactionManager().getOrCreateResource(
                 SESSION_RESOURCE_KEY, () -> new EntityManagerHolder(newSession()));

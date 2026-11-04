@@ -27,6 +27,7 @@ class EntityManagerSessionTest {
         assertThrows(IllegalStateException.class, () -> session.persist(new User()));
         assertThrows(IllegalStateException.class, () -> session.update(new User()));
         assertThrows(IllegalStateException.class, () -> session.remove(new User()));
+        assertThrows(IllegalStateException.class, session::flush);
     }
 
     /** long 원시 타입도 같은 세션에서 wrapper ID와 같은 키로 조회해야 한다. */
