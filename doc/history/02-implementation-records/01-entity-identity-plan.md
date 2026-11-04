@@ -1,8 +1,12 @@
-# Entity IDENTITY Implementation Plan
+# 01. IDENTITY 생성 ID 구현 계획
 
-**Goal:** DB가 생성한 IDENTITY 키를 persist 호출 중 엔티티에 반영한다.
-**Architecture:** EntityMetadata가 생성 ID 선언을 검증하고, EntityManager가 ID를 제외한 INSERT를 생성한다. JdbcTemplate이 같은 트랜잭션 연결에서 지정 ID 컬럼의 생성 키를 읽는다.
-**Tech Stack:** Java 21, JDBC, JUnit 5, H2. 추가 의존성 없음.
+작성일: 2026-11-02
+
+> 구현 당시의 계획 기록이다. 범위·체크리스트·검증 수치는 당시 기준이며 최신 상태는 [진행 상황](../../00-overview/01-progress.md)을 참고한다.
+
+**목표:** DB가 생성한 IDENTITY 키를 persist 호출 중 엔티티에 반영한다.
+**구조:** EntityMetadata가 생성 ID 선언을 검증하고, EntityManager가 ID를 제외한 INSERT를 생성한다. JdbcTemplate이 같은 트랜잭션 연결에서 지정 ID 컬럼의 생성 키를 읽는다.
+**사용 기술:** Java 21, JDBC, JUnit 5, H2. 추가 의존성 없음.
 
 ## 계약과 범위
 - 자체 @GeneratedValue(strategy = GenerationType.IDENTITY), 기본 전략도 IDENTITY. 다른 전략은 제공하지 않는다.

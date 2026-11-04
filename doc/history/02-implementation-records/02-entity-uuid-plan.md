@@ -1,8 +1,12 @@
-# UUID 생성 전략 구현 계획
+# 02. UUID 생성 전략 구현 계획
 
-**Goal:** 자체 @GeneratedValue(strategy = GenerationType.UUID)로 UUID·String ID를 INSERT 전에 생성한다.
-**Architecture:** 메타데이터가 전략별 타입을 검증한다. EntityManager는 UUID를 객체에 먼저 반영해 INSERT에 포함하고, IDENTITY만 ID 컬럼 제외·생성 키 회수 경로를 사용한다.
-**Tech Stack:** Java 21, JDBC, JUnit 5, H2. 추가 의존성 없음.
+작성일: 2026-11-02
+
+> 구현 당시의 계획 기록이다. 범위·체크리스트·검증 수치는 당시 기준이며 최신 상태는 [진행 상황](../../00-overview/01-progress.md)을 참고한다.
+
+**목표:** 자체 @GeneratedValue(strategy = GenerationType.UUID)로 UUID·String ID를 INSERT 전에 생성한다.
+**구조:** 메타데이터가 전략별 타입을 검증한다. EntityManager는 UUID를 객체에 먼저 반영해 INSERT에 포함하고, IDENTITY만 ID 컬럼 제외·생성 키 회수 경로를 사용한다.
+**사용 기술:** Java 21, JDBC, JUnit 5, H2. 추가 의존성 없음.
 
 ## 계약
 - UUID.randomUUID()로 v4 UUID 생성. String 필드는 표준 UUID 문자열을 저장한다.

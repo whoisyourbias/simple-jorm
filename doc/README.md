@@ -37,8 +37,11 @@ doc/
 │  ├─ 01-java-orm-ecosystem.md
 │  ├─ 02-implementation-status.md
 │  └─ 03-learning-stage-mapping.md
-├─ history/                       # 이전 진행 기록
-│  └─ 01-before-mapper.md
+├─ history/                       # 이전 진행·설계·구현 계획 기록
+│  ├─ 01-before-mapper.md
+│  └─ 02-implementation-records/   # 번호순 설계·계획과 당시 검증 결과
+│     ├─ README.md
+│     └─ 01~11-*.md
 └─ lab/                            # 학습 단계와 분리한 실험
    ├─ README.md
    ├─ 01-mapping-scaling-plan.md
@@ -70,6 +73,7 @@ Spring JDBC식 실행 → MyBatis식 SQL Mapper → Spring식 트랜잭션 → H
 - 트랜잭션은 `03-transaction`, 엔티티 CRUD는 `04-entity-crud`에서 관리한다. 영속성 컨텍스트의 개념과 구현 준비는 `05-persistence-context`에서 관리한다. 아직 문서나 코드가 없는 단계의 빈 폴더는 만들지 않는다.
 - `lab`의 실험 계획·보고서는 번호로 짝을 구분한다. 실행 스크립트와 원시 결과 이름은 재현 경로를 유지한다.
 - 단계 완료 여부는 `00-overview/01-progress.md`에 갱신한다. 실험 기록은 `lab`에 둔다.
+- 설계·구현 계획도 `doc/` 안에서 관리한다. 진행 중인 문서는 관련 학습 단계에 두고, 완료된 기록은 `history/02-implementation-records/`에 번호순으로 보관한다. 작성일은 문서 첫머리에 적고 현재 상태 문서와 연결한다.
 
 ## 상세 자료와 이전 기록
 
@@ -77,6 +81,7 @@ Spring JDBC식 실행 → MyBatis식 SQL Mapper → Spring식 트랜잭션 → H
 - [단계별 실제 기술 대응](reference/03-learning-stage-mapping.md)
 - [구현 상세·제약·검증 기록](reference/02-implementation-status.md)
 - [Mapper 구현 전 진행 기록](history/01-before-mapper.md)
+- [구현 설계·계획과 당시 검증 기록](history/02-implementation-records/README.md)
 
 `overview`에는 요약과 링크를 두고, 상세 자료는 `reference`, 당시 진행 상태는 `history`에 보존한다.
 

@@ -1,23 +1,25 @@
-# JORM Stage Core Implementation Plan
+# 11. 단계별 핵심 기능 구현 계획
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
+작성일: 2026-11-04
 
-**Goal:** 단계별 핵심 기능을 별도 워크트리의 담당 서브에이전트가 구현하고 호출자가 통합·검증한다.
+> 별도 워크트리의 단계별 서브에이전트가 수행한 계획·완료 기록이다. 최신 지원 범위와 검증은 [진행 상황](../../00-overview/01-progress.md)을 참고한다.
 
-**Architecture:** 공통 기준은 최신 main과 기존 영속성 컨텍스트 브랜치를 합친 0e802c3이다. 01·02·03을 병렬 진행하고 빈 슬롯에 04를 배정한다. 05는 03의 beforeCommit 계약 위에서 진행한다.
+**목표:** 단계별 핵심 기능을 별도 워크트리의 담당 서브에이전트가 구현하고 호출자가 통합·검증한다.
 
-**Tech Stack:** Java 21, Gradle 8.9, JUnit 5, H2, JDK reflection/proxy, standalone HTML/Node tests.
+**구조:** 공통 기준은 최신 main과 기존 영속성 컨텍스트 브랜치를 합친 0e802c3이다. 01·02·03을 병렬 진행하고 빈 슬롯에 04를 배정한다. 05는 03의 beforeCommit 계약 위에서 진행한다.
 
-**Spec:** `docs/superpowers/specs/2026-11-04-stage-core-design.md`
+**사용 기술:** Java 21, Gradle 8.9, JUnit 5, H2, JDK reflection/proxy, standalone HTML/Node tests.
 
-## Global Constraints
+**설계:** [단계별 핵심 기능](10-stage-core-design.md)
+
+## 공통 제약
 
 - 각 단계는 할당받은 독립 워크트리에서 담당 서브에이전트가 수정한다.
 - 문서 → 테스트 → 구현 → 소개문서 → 검증/커밋/호출자 보고 순서를 지킨다.
 - 핵심만 구현하고 JDK/JDBC 기반 자체 API를 유지한다.
 - 원본 main의 미커밋 변경을 보존하며 main 병합/push를 수행하지 않는다.
 
-## Review Focus
+## 검토 항목
 
 - 자동 매핑의 null primitive, 숫자 범위 초과, setter 실패를 JDBC 테스트에서 검증한다.
 - 이름 바인딩의 반복·순서·누락과 SQL 인용문을 Mapper 테스트에서 검증한다.
@@ -25,7 +27,7 @@
 - 상속 ID, 저장 제외 필드, 숨겨진 중복 필드를 엔티티 테스트에서 검증한다.
 - flush 실패 전체 롤백과 명시적 update/remove 이후 중복 UPDATE 방지를 검증한다.
 
-## Task 01 — JDBC (stage_01_jdbc)
+## 작업 01 — JDBC (stage_01_jdbc)
 
 Files: `com/jorm/jdbc/BeanPropertyRowMapper.java`, JDBC tests, `doc/01-jdbc/`, HTML jdbc section.
 
@@ -34,7 +36,7 @@ Files: `com/jorm/jdbc/BeanPropertyRowMapper.java`, JDBC tests, `doc/01-jdbc/`, H
 - [x] 최소 구현 후 JDBC 테스트 실행.
 - [x] 해당 HTML 소개 갱신 후 커밋과 검증 결과 보고.
 
-## Task 02 — Mapper (stage_02_mapper)
+## 작업 02 — Mapper (stage_02_mapper)
 
 Files: `com/jorm/mapper/`, mapper tests, `doc/02-mapper/`, HTML mapper section.
 
@@ -43,7 +45,7 @@ Files: `com/jorm/mapper/`, mapper tests, `doc/02-mapper/`, HTML mapper section.
 - [x] 최소 구현 후 Mapper 테스트 실행.
 - [x] 해당 HTML 소개 갱신 후 커밋과 검증 결과 보고.
 
-## Task 03 — Transactions (stage_03_transaction)
+## 작업 03 — Transactions (stage_03_transaction)
 
 Files: `com/jorm/transaction/`, transaction tests, `doc/03-transaction/`, HTML transaction section.
 
@@ -54,7 +56,7 @@ Produces: `TransactionResource.default void beforeCommit() throws SQLException`.
 - [x] 최소 구현 후 transaction 테스트 실행.
 - [x] 해당 HTML 소개 갱신 후 커밋과 검증 결과 보고.
 
-## Task 04 — Entity metadata (stage_04_entity)
+## 작업 04 — Entity metadata (stage_04_entity)
 
 Files: `EntityMetadata.java`, new `Transient.java`, entity metadata/CRUD tests, `doc/04-entity-crud/`, HTML entity section.
 
@@ -63,7 +65,7 @@ Files: `EntityMetadata.java`, new `Transient.java`, entity metadata/CRUD tests, 
 - [x] 메타데이터 계층만 최소 수정 후 CRUD 회귀 검증.
 - [x] 해당 HTML 소개 갱신 후 커밋과 검증 결과 보고.
 
-## Task 05 — Persistence context (stage_05_context)
+## 작업 05 — Persistence context (stage_05_context)
 
 Files: `EntityManager.java`, `EntityManagerSession.java`, `PersistenceContext.java`, `EntityManagerHolder.java`, entity context tests, `doc/05-persistence-context/`, HTML context section.
 

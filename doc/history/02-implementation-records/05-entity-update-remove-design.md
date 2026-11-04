@@ -1,4 +1,8 @@
-# 엔티티 update · remove
+# 05. 엔티티 update·remove 설계
+
+작성일: 2026-11-03
+
+> 구현 당시의 설계 기록이다. 당시 선택과 제외 범위를 보존하며 최신 상태는 [진행 상황](../../00-overview/01-progress.md)을 참고한다.
 
 요청은 EntityManager.update(Object)와 remove(Object) 구현이다. 기존 메타데이터와 JdbcTemplate.update를 사용해 호출 즉시 SQL을 실행하고 int 변경 행 수를 반환한다. 대상이 없으면 0이다.
 
