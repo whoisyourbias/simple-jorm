@@ -21,6 +21,7 @@ public final class TransactionManager {
         private final Connection connection;
         // null이 아니면 rollbackOnly다. 바깥에서 예외를 잡더라도 이 표시는 유지된다.
         private Throwable rollbackCause;
+        private boolean preparingCommit;
         private boolean completing;
         private final Map<Object, TransactionResource> resources = new LinkedHashMap<>();
 
@@ -47,6 +48,9 @@ public final class TransactionManager {
         }
         TransactionResource resource = state.resources.get(key);
         if (resource == null) {
+            if (state.preparingCommit) {
+                throw new IllegalStateException("커밋 전 콜백 중에는 새 자원을 등록할 수 없습니다.");
+            }
             resource = Objects.requireNonNull(factory.get());
             state.resources.put(key, resource);
         }
@@ -105,6 +109,9 @@ public final class TransactionManager {
         // 이미 트랜잭션이 있으면 새 연결을 만들지 않고 기존 상태에 참여한다.
         TransactionState active = activeState();
         if (active != null) {
+            if (active.preparingCommit) {
+                throw new IllegalStateException("커밋 전 콜백 중에는 트랜잭션 경계를 시작할 수 없습니다.");
+            }
             return participate(active, callback);
         }
         // 연결·Statement·파일 자원을 열고 try-with-resources로 사용 후 자동 정리한다.
@@ -126,6 +133,18 @@ public final class TransactionManager {
                 // 안쪽 실패를 업무 코드에서 잡았더라도 부분 성공을 커밋하면 안 된다.
                 if (state.rollbackCause != null) {
                     // 아래 catch에서 전체 롤백한 뒤 호출자에게 정상 커밋되지 않았음을 알린다.
+                    throw new UnexpectedRollbackException(state.rollbackCause);
+                }
+                // 동기화 중에는 같은 연결 SQL을 허용하되 새 경계와 자원 등록을 금지한다.
+                state.preparingCommit = true;
+                try {
+                    for (TransactionResource resource : state.resources.values()) {
+                        resource.beforeCommit();
+                    }
+                } finally {
+                    state.preparingCommit = false;
+                }
+                if (state.rollbackCause != null) {
                     throw new UnexpectedRollbackException(state.rollbackCause);
                 }
                 // 지금까지 실행한 변경을 확정한다.

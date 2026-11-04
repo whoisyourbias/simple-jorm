@@ -45,7 +45,7 @@ class TransactionManagerTest {
 
         /** 출금 후 입금을 수행한다. 구현 메서드의 어노테이션은 Service 프록시가 검사한다. */
         @Override
-        @Transactional
+        @Transactional(rollbackFor = SQLException.class)
         public void transfer(long fromId, long toId, int amount) throws SQLException {
             // 출금 계좌의 잔액을 차감하도록 Mapper를 호출한다.
             accounts.withdraw(amount, fromId);
@@ -123,7 +123,7 @@ class TransactionManagerTest {
             });
         }
         /** 잔액 변경 후 checked 예외를 던져 롤백과 원래 예외 전달을 검증하게 한다. */
-        @Transactional
+        @Transactional(rollbackFor = Exception.class)
         public void fail() throws Exception {
             // 지정 SQL과 인자로 데이터를 생성·변경·삭제한다.
             jdbc.update("UPDATE accounts SET balance = 50 WHERE id = 1");
