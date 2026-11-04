@@ -57,7 +57,7 @@ class TransactionServiceCollaborationTest {
 
         /** 입금까지 실행한 뒤 업무 실패를 발생시킨다. */
         @Override
-        @Transactional
+        @Transactional(rollbackFor = SQLException.class)
         public void depositThenFail() throws SQLException {
             jdbc.update("UPDATE accounts SET balance = balance + 30 WHERE id = 2");
             throw failure;
@@ -83,7 +83,7 @@ class TransactionServiceCollaborationTest {
 
         /** 안쪽 프록시의 실패가 바깥 트랜잭션까지 전파된다. */
         @Override
-        @Transactional
+        @Transactional(rollbackFor = SQLException.class)
         public void withInnerFailure() throws SQLException {
             jdbc.update("UPDATE accounts SET balance = balance - 30 WHERE id = 1");
             deposit.depositThenFail();

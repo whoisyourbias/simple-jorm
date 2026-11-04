@@ -26,25 +26,32 @@ public final class TransactionInvocationHandler implements InvocationHandler {
         Method implementationMethod = target.getClass().getMethod(
                 method.getName(), method.getParameterTypes());
         // 어노테이션이 붙은 구현 메서드에서 트랜잭션 적용 여부를 검사한다.
-        if (!implementationMethod.isAnnotationPresent(Transactional.class)) {
+        Transactional transactional = implementationMethod.getAnnotation(Transactional.class);
+        if (transactional == null) {
             // 실제 Service 메서드를 호출하고 반환값을 전달한다.
             return invokeTarget(implementationMethod, args);
         }
+        // 커밋할 업무 예외는 정상 반환 경로로 전달하고, 물리 경계 완료 후 원본을 다시 던진다.
+        // REQUIRED 참여에서도 이 예외가 execute의 롤백 표시를 남기지 않게 한다.
+        Throwable[] commitOnFailure = new Throwable[1];
+        Object result;
         try {
             // 실제 Service 실행 전체를 트랜잭션 콜백으로 감싼다.
-            return transactions.execute(() -> {
+            result = transactions.execute(() -> {
                 try {
                     // 실제 Service 메서드를 호출하고 반환값을 전달한다.
                     return invokeTarget(implementationMethod, args);
                     // 해당 실패를 받아 롤백 또는 예외 변환·전파 경로로 처리한다.
-                } catch (SQLException | RuntimeException | Error e) {
-                    // 원래 실패를 호출자에게 전달한다. 트랜잭션 안이면 롤백 처리로 이어진다.
-                    throw e;
-                    // 해당 실패를 받아 롤백 또는 예외 변환·전파 경로로 처리한다.
                 } catch (Throwable e) {
-                    // 현재 TransactionCallback은 checked 예외로 SQLException만 허용한다.
-                    // 나머지 checked 예외는 임시 포장해 롤백한 후 바깥 catch에서 원래 예외로 돌린다.
-                    // checked 업무 예외를 임시 포장해 관리자의 롤백 경로로 전달한다.
+                    if (!rollbackOn(transactional, e)) {
+                        commitOnFailure[0] = e;
+                        return null;
+                    }
+                    transactions.markRollbackOnly(e);
+                    if (e instanceof SQLException sql) throw sql;
+                    if (e instanceof RuntimeException runtime) throw runtime;
+                    if (e instanceof Error error) throw error;
+                    // 명시적 execute의 SQLException 전용 checked 계약은 유지한다.
                     throw new ServiceFailure(e);
                 }
             });
@@ -59,7 +66,35 @@ public final class TransactionInvocationHandler implements InvocationHandler {
             }
             // 원래 실패를 호출자에게 전달한다. 트랜잭션 안이면 롤백 처리로 이어진다.
             throw original;
+        } catch (SQLException | RuntimeException | Error completionFailure) {
+            // 커밋·동기화 실패가 업무 예외보다 우선하지만 업무 예외도 잃지 않는다.
+            if (commitOnFailure[0] != null && commitOnFailure[0] != completionFailure) {
+                completionFailure.addSuppressed(commitOnFailure[0]);
+            }
+            throw completionFailure;
         }
+        if (commitOnFailure[0] != null) throw commitOnFailure[0];
+        return result;
+    }
+
+    /** 가장 가까운 예외 타입이 우선하며 동일 타입 충돌에서는 rollbackFor가 우선한다. */
+    private boolean rollbackOn(Transactional transactional, Throwable failure) {
+        int rollbackDepth = matchDepth(transactional.rollbackFor(), failure.getClass());
+        int noRollbackDepth = matchDepth(transactional.noRollbackFor(), failure.getClass());
+        if (rollbackDepth == Integer.MAX_VALUE && noRollbackDepth == Integer.MAX_VALUE) {
+            return failure instanceof RuntimeException || failure instanceof Error;
+        }
+        return rollbackDepth <= noRollbackDepth;
+    }
+
+    private int matchDepth(Class<? extends Throwable>[] rules, Class<?> exceptionType) {
+        int depth = 0;
+        for (Class<?> type = exceptionType; type != null; type = type.getSuperclass(), depth++) {
+            for (Class<? extends Throwable> rule : rules) {
+                if (rule == type) return depth;
+            }
+        }
+        return Integer.MAX_VALUE;
     }
 
     /** 실제 객체를 리플렉션으로 호출하고 InvocationTargetException에서 원래 예외를 꺼낸다. */
