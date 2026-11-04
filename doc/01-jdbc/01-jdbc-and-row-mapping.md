@@ -33,6 +33,7 @@ flowchart TD
 
 - 인자 없는 생성자가 필요하며, 조회하지 않은 프로퍼티는 초기값을 유지한다.
 - 상속된 public JavaBean setter도 사용한다. 직접 필드 fallback은 대상 클래스의 선언 필드만 지원하고 static·final 필드는 제외한다.
+- 서로 다른 프로퍼티의 이름·snake_case 별칭이 대소문자 무시 비교에서 겹치면 생성 시 `IllegalArgumentException`으로 거부한다. 예를 들어 `setURL`과 `setUrl`은 모호하다. 같은 프로퍼티의 필드와 setter는 setter를 우선한다.
 - 숫자 타입 사이의 변환은 값이 정확히 보존되는 경우에만 허용한다. 정수 범위 초과·소수 절삭·부동소수점 정밀도 손실·NaN·Infinity 변환을 거부한다. 문자열의 숫자 해석은 제공하지 않는다.
 - 숫자 `0`/`1`을 boolean으로, 한 글자 문자열을 char로 변환한다. JDBC `Date`·`Time`·`Timestamp`는 각각 `LocalDate`·`LocalTime`·`LocalDateTime`으로 변환한다. 나머지는 원래 타입이 대입 가능한 경우만 허용한다.
 - SQL NULL은 참조 타입에 null로 전달하며 primitive에는 `SQLException`을 던진다. setter가 던진 원인은 `SQLException.getCause()`에 보존한다.

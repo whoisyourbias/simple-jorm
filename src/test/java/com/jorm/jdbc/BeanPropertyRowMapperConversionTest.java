@@ -28,6 +28,10 @@ class BeanPropertyRowMapperConversionTest {
         public void setFirstName(String value) { stored = value; }
     }
     static class InheritedBean extends SetterOnlyBean {}
+    static class AmbiguousSettersBean {
+        public void setURL(String value) {}
+        public void setUrl(String value) {}
+    }
     static class Numbers {
         private Byte byteValue;
         private Short shortValue;
@@ -62,6 +66,13 @@ class BeanPropertyRowMapperConversionTest {
         var source = new JdbcDataSource();
         source.setURL("jdbc:h2:mem:mapper_conversion");
         return new JdbcTemplate(source);
+    }
+
+    @Test
+    void rejectsDistinctSettersWhosePropertyNamesDifferOnlyInCase() {
+        var failure = assertThrows(IllegalArgumentException.class,
+                () -> new BeanPropertyRowMapper<>(AmbiguousSettersBean.class));
+        assertTrue(failure.getMessage().contains("url"));
     }
 
     @Test

@@ -44,7 +44,12 @@ public final class BeanPropertyRowMapper<T> implements RowMapper<T> {
                 Method setter = descriptor.getWriteMethod();
                 if (setter != null && Modifier.isPublic(setter.getModifiers())
                         && !Modifier.isStatic(setter.getModifiers())) {
-                    discovered.put(lower(descriptor.getName()), new Property(descriptor.getName(),
+                    String key = lower(descriptor.getName());
+                    Property previous = discovered.get(key);
+                    if (previous != null && previous.setter() != null) {
+                        throw new IllegalArgumentException("Ambiguous property mapping: " + key);
+                    }
+                    discovered.put(key, new Property(descriptor.getName(),
                             setter.getParameterTypes()[0], setter, null));
                 }
             }
