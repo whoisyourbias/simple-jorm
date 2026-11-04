@@ -65,4 +65,6 @@ Service A 프록시 → 새 트랜잭션 시작
 
 `ThreadLocal<TransactionState>`는 연결과 rollbackOnly 원인을 함께 보관한다. 최초 실패 원인을 유지하므로 뒤의 참여가 성공해도 롤백 표시는 사라지지 않는다.
 
-TransactionServiceCollaborationTest는 두 Service의 일괄 커밋, 실패 전파 시 전체 롤백, 실패를 잡았을 때 UnexpectedRollbackException 발생, 실패 후 다음 독립 호출 성공을 검증한다. TransactionSelfInvocationTest는 프록시를 우회하는 자기 호출의 차이를 별도로 확인한다.
+TransactionServiceCollaborationTest는 두 Service의 일괄 커밋, 실패 전파 시 전체 롤백, 실패를 잡았을 때 UnexpectedRollbackException 발생, 실패 후 다음 독립 호출 성공을 검증한다. TransactionSelfInvocationTest는 프록시를 우회하는 자기 호출의 차이를 별도로 확인한다. 이 SQL 실패 송금 예제는 진입 메서드에 `@Transactional(rollbackFor = SQLException.class)`를 명시한다.
+
+TransactionRollbackRulesTest는 기본 checked 커밋과 원본 재전파, 기본 RuntimeException·Error 롤백, 명시적 checked 롤백, 가장 구체적인 타입 규칙과 동일 타입 충돌, REQUIRED 참여의 noRollbackFor와 기존 rollbackOnly 보존을 검증한다. TransactionResourceTest는 바깥 경계의 커밋 전 SQL, 새 자원·경계 등록 제한, 콜백 실패 시 앞선 SQL까지 롤백, rollbackOnly 경로에서 콜백 생략과 모든 자원 정리를 확인한다.
