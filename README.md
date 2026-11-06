@@ -1,5 +1,7 @@
 # simple-jorm
 
+현재 릴리즈: **[v0.1.0-alpha.1](https://github.com/whoisyourbias/simple-jorm/releases/tag/v0.1.0-alpha.1)**. 학습·실험용 알파 버전이며 API·동작의 호환성을 보장하지 않는다. [릴리즈 내역과 버전 정책](doc/reference/04-releases.md)을 참고한다.
+
 실제 데이터 접근 기술의 동작은 **[Java 데이터 접근 기술 — 학습 웹페이지](doc/index.html)**에서 그림과 실행 애니메이션으로 살펴본다. HTML 한 파일로 오프라인에서도 동작하며 Spring JDBC·MyBatis·Spring 트랜잭션·JPA/Hibernate의 내부 흐름을 설명한다. 이 저장소의 구현 범위는 아래 표와 단계별 문서에서 확인한다.
 
 JDBC에서 SQL Mapper, 트랜잭션, 엔티티 매핑으로 확장하며 Java 데이터 접근 기술의 내부 동작을 학습하는 라이브러리다. AI 에이전트가 저장소를 탐색하고 수정·검증할 때 사용할 진입 문서이기도 하다.

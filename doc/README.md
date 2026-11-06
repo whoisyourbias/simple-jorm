@@ -36,7 +36,8 @@ doc/
 ├─ reference/                     # 기술·구현 상세 자료
 │  ├─ 01-java-orm-ecosystem.md
 │  ├─ 02-implementation-status.md
-│  └─ 03-learning-stage-mapping.md
+│  ├─ 03-learning-stage-mapping.md
+│  └─ 04-releases.md
 ├─ history/                       # 이전 진행·설계·구현 계획 기록
 │  ├─ 01-before-mapper.md
 │  └─ 02-implementation-records/   # 번호순 설계·계획과 당시 검증 결과
@@ -77,6 +78,7 @@ Spring JDBC식 실행 → MyBatis식 SQL Mapper → Spring식 트랜잭션 → H
 
 ## 상세 자료와 이전 기록
 
+- [릴리즈 내역과 버전 정책](reference/04-releases.md)
 - [Java 데이터 접근 생태계 상세](reference/01-java-orm-ecosystem.md)
 - [단계별 실제 기술 대응](reference/03-learning-stage-mapping.md)
 - [구현 상세·제약·검증 기록](reference/02-implementation-status.md)
